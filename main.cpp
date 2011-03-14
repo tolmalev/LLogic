@@ -48,9 +48,21 @@ int main(int argc, char *argv[])
     w.showDocument(d2);
     w.showDocument(d2->clone());
 
+
+    QDomDocument doc;
+    QFile f("test.xml");
+    f.open(QIODevice::ReadOnly);
+    doc.setContent(&f);
+
+    Document *d3 = Document::fromXml(doc.documentElement());
+    w.showDocument(d3);
+
+
     app.exec();
 
     d2->saveToFile("test.lod");
+
+
 
 
     //Count line numbers

@@ -18,8 +18,8 @@ class ComplexElement : public Element
 
     protected:
         Document*d;
-        QList<QPair<int, int> > in_connections;
-        QList<QPair<int, int> > out_connections;
+        QVector<QPair<int, int> > in_connections;
+        QVector<QPair<int, int> > out_connections;
     public:
 
         ComplexElement();
@@ -27,6 +27,11 @@ class ComplexElement : public Element
         Element*    clone();
         Document* document(){return d;}
         int         saveToFile(FILE *f);
+
+        static ComplexElement *fromXml(QDomElement d_el);
+
+        bool parseInputConnections(QDomElement d_el);
+        bool parseOutputConnections(QDomElement d_el);
 };
 
 #endif // COMPLEXELEMENT_H

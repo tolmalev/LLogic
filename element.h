@@ -5,6 +5,7 @@
 #include "classes.h"
 #include <QList>
 #include <QVector>
+#include <QtXml/QDomDocument>
 
 enum elementTypes{
     SIMPLE,
@@ -42,6 +43,12 @@ class Element : public QObject
     public:
         Element();
         Element(Controller*c, int _in_cnt = -1, int _out_cnt = -1, int type = SIMPLE);
+
+        static Element *fromXml(QDomElement);
+
+        bool parseView(QDomElement);
+        bool parseInputPoints(QDomElement);
+        bool parseOutputPoints(QDomElement);
 
         virtual void recalc() = 0;
         virtual Element* clone() = 0;

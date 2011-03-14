@@ -5,7 +5,7 @@
 #include <QList>
 #include <QFile>
 #include <QString>
-
+#include <QtXml/QDomElement>
 
 #include "classes.h"
 
@@ -35,6 +35,11 @@ public:
     ~Document();
     static   Document* fromFile(FILE *, int _document_type=FULL);
     static   Document* fromFile(QString filename);
+
+    static   Document* fromXml(QDomElement d_el);
+    bool    parseElements(QDomElement d_el);
+    bool    parseConnections(QDomElement d_el);
+
     int     saveToFile(QString _filename = "");
     int     saveToFile(FILE*);
 

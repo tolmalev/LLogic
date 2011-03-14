@@ -48,11 +48,13 @@ void Controller::set(int id, int val)
 int Controller::new_point(int id)
 {
     if(id == -1)
-        id = n;
+        id = n++;
+    if(value.find(id) != value.end())
+        return -1;
     value[id]=0;
     connections[id] = new QList<int>;
     e_connected[id] = 0;
-    return n++;
+    return id;
 }
 
 void Controller::remove_point(int id)

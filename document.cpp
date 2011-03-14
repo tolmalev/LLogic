@@ -89,7 +89,7 @@ Document * Document::fromFile(FILE *f, int _document_type)
             {
                 if(fread(&tm, sizeof(i), 1, f) != 1)
                     {delete d; return 0;}
-                e->in.push_back(tm);
+                e->in[i] = tm;
                 d->c->new_point(tm);
                 d->c->connect_element(tm, e);
             }
@@ -97,7 +97,7 @@ Document * Document::fromFile(FILE *f, int _document_type)
             {
                 if(fread(&tm, sizeof(i), 1, f) != 1)
                     {delete d; return 0;}
-                e->out.push_back(tm);
+                e->out[i] = tm;
                 d->c->new_point(tm);
                 d->c->connect_in_element(tm, e);
             }
@@ -265,6 +265,88 @@ Document* Document::fromFile(QString filename)
     {
         d->fileName = filename;
         d->_name = d->fileName.right(d->fileName.size() - 1 - d->fileName.lastIndexOf("/"));
+    }
+    return d;
+}
+
+bool Document::parseElements(QDomElement d_el)
+{
+    QDomElement ch_e = d_el.firstChildElement();
+    while(!ch_e.isNull())
+    {
+        if(ch_e.tagName() == "element")
+        {
+            Element *e = Element::fromXml(ch_e);
+            if(e == 0)
+                return 0;
+            e->c = c;
+            foreach(int i, e->in)
+            {
+                if(c->new_point(i) < 0)
+                    return 0;
+                c->connect_element(i, e);
+            }
+            foreach(int i, e->out)
+            {
+                if(c->new_point(i) < 0)
+                    return 0;
+                c->connect_in_element(i, e);
+            }
+
+            elements.push_back(e);
+        }
+        ch_e = ch_e.nextSiblingElement();
+    }
+    return 1;
+}
+
+bool Document::parseConnections(QDomElement d_el)
+{
+    QDomElement ch_e = d_el.firstChildElement();
+    while(!ch_e.isNull())
+    {
+        if(ch_e.tagName() == "connection")
+        {
+            int from = ch_e.attribute("from", "-1").toInt();
+            int to   = ch_e.attribute("to", "-1").toInt();
+
+            if(to == -1 || from == -1)
+                return 0;
+            if(c->add_connection(from, to))
+                return 0;
+        }
+        ch_e = ch_e.nextSiblingElement();
+    }
+    return 1;
+}
+
+Document * Document::fromXml(QDomElement d_el)
+{
+    QString type = d_el.attribute("type");
+    if(type != "fullDocument")
+        return 0;
+    Document *d = new Document;
+    QDomElement ch_e = d_el.firstChildElement();
+    bool elements_ok = 0;
+    bool connections_ok = 0;
+
+    while(!ch_e.isNull())
+    {
+        if(ch_e.tagName() == "elements")
+        {
+            elements_ok = d->parseElements(ch_e);
+        }
+        else if(ch_e.tagName() == "connections")
+        {
+            connections_ok = d->parseConnections(ch_e);
+        }
+        ch_e = ch_e.nextSiblingElement();
+    }
+
+    if(!elements_ok || !connections_ok)
+    {
+        delete d;
+        return 0;
     }
     return d;
 }

@@ -20,6 +20,8 @@ enum elementTypes{
     RECEIVE
 };
 
+QString typeString(int type);
+
 class Element : public QObject
 {
     Q_OBJECT
@@ -45,6 +47,10 @@ class Element : public QObject
         Element(Controller*c, int _in_cnt = -1, int _out_cnt = -1, int type = SIMPLE);
 
         static Element *fromXml(QDomElement);
+        virtual QDomElement toXml(QDomDocument);
+        QDomElement viewToXml(QDomDocument);
+        QDomElement inputPointsToXml(QDomDocument);
+        QDomElement outputPointsToXml(QDomDocument);
 
         bool parseView(QDomElement);
         bool parseInputPoints(QDomElement);

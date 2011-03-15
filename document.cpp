@@ -53,147 +53,37 @@ void Document::stop_calculation()
     c->stop_calculation();
 }
 
-Document * Document::fromFile(FILE *f, int _document_type)
-{
-    if(f == 0)
-        return 0;
-    Document *d = new Document(_document_type);
-    DocumentHeader dh;
-    if(fread((void*)&dh, sizeof(dh), 1, f) != 1)
-        return 0;
-    switch(_document_type)
-    {
-        case FULL:if(dh.doc_type != 1){delete d; return 0;} break;
-        case ELEMENT:if(dh.doc_type != 2){delete d; return 0;} break;
-    }
-    char * str = new char[dh.name_length];
-    if(fread(str, 1, dh.name_length, f) != (size_t)dh.name_length)
-        {delete d; return 0;}
-    d->_name.fromAscii(str, dh.name_length);
-    ElementHeader eh;
-    for(int i = 0; i < dh.elements_count; i++)
-    {
-        if(fread((void*)&eh, sizeof(eh), 1, f) != 1)
-            {delete d; return 0;}
-        if(eh.type != COMPLEX)
-        {
-            Element * e = SimpleElement(eh.type);
-            e->in_cnt = eh.in_cnt;
-            e->out_cnt = eh.out_cnt;
-            e->_view.x = eh.x;
-            e->_view.y = eh.y;
-            e->_view.width = eh.width;
-            e->_view.height = eh.height;
-            int tm;
-            for(int i = 0; i < eh.in_cnt; i++)
-            {
-                if(fread(&tm, sizeof(i), 1, f) != 1)
-                    {delete d; return 0;}
-                e->in[i] = tm;
-                d->c->new_point(tm);
-                d->c->connect_element(tm, e);
-            }
-            for(int i = 0; i < eh.out_cnt; i++)
-            {
-                if(fread(&tm, sizeof(i), 1, f) != 1)
-                    {delete d; return 0;}
-                e->out[i] = tm;
-                d->c->new_point(tm);
-                d->c->connect_in_element(tm, e);
-            }
-            e->c = d->c;
-            d->elements.push_back(e);
-        }
-    }
-    int tm, tm2;
-    int a[2];
-    if(fread(&tm, sizeof(tm), 1, f) != 1)
-        {delete d; return 0;}
-    for(int i = 0; i < tm; i++)
-    {
-        if(fread(&tm2, sizeof(tm2), 1, f) != 1)
-            {delete d; return 0;}
-        for(int j = 0; j < tm2; j++)
-        {
-            if(fread(a, sizeof(int), 2, f) != 2)
-                {delete d; return 0;}
-            d->c->add_connection(a[0], a[1]);
-            //qWarning("connection read %d %d", a[0], a[1]);
-        }
-    }
-    fclose(f);
-    return d;
-}
-
 int Document::saveToFile(QString filename)
 {
-    if(filename == "")
-        filename = fileName;
-    FILE * f = fopen(filename.toAscii(), "wb");
-    return saveToFile(f);
+    QFile f(filename);
+    if(!f.open(QIODevice::WriteOnly))
+        return -1;
+    QDomDocument doc("LDocument");
+    doc.appendChild(toXml(doc));
+    if(f.write(doc.toByteArray())== -1)
+    {
+        f.close();
+        return 0;
+    }
+
+    f.close();
+    return 1;
 }
 
-int Document::saveToFile(FILE *f)
+Document* Document::fromFile(QString filename)
 {
-    if(f == 0)
-        return -1;
-    DocumentHeader dh;
-    switch(document_type())
+    QFile f(filename);
+    if(!f.open(QIODevice::ReadOnly))
+        return 0;
+    QDomDocument doc;
+    if(!doc.setContent(&f))
     {
-        case FULL:dh.doc_type = 1;break;
-        case ELEMENT:dh.doc_type = 2;break;
-    }
-    dh.name_length = _name.length();
-    dh.elements_count = elements.size();
-    if(fwrite((void*)&dh, sizeof(dh), 1, f) != 1)
-        return -1;
-    if(fwrite(_name.toAscii(), 1, _name.length(), f) != (size_t)_name.length())
-        return -1;
-    ElementHeader eh;
-    foreach(Element*e, elements)
-    {
-        eh.in_cnt = e->in_cnt;
-        eh.out_cnt = e->out_cnt;
-        eh.x = e->view().x;
-        eh.y = e->view().y;
-        eh.width = e->view().width;
-        eh.height = e->view().height;
-        eh.type = e->_type;
-        if(fwrite((void*)&eh, sizeof(eh), 1, f) != 1)
-            return -1;
-        foreach(int i, e->in)
-            if(fwrite(&i, sizeof(i), 1, f) != 1)
-                return -1;
-        foreach(int i, e->out)
-            if(fwrite(&i, sizeof(i), 1, f) != 1)
-                return -1;
-        if(e->type() == COMPLEX)
-            if(((ComplexElement*)e)->saveToFile(f))
-                return -1;
+        f.close();
+        return 0;
     }
 
-    int tm = c->connections.count();
-    if(fwrite(&tm, sizeof(tm), 1, f) != 1)
-        return -1;
-    foreach(int a, c->connections.keys())
-    {
-        tm = c->connections[a]->size();
-        if(fwrite(&tm, sizeof(tm), 1, f) != 1)
-            return -1;
-        foreach(int b, *c->connections[a])
-        {
-            tm = a;
-            if(fwrite(&tm, sizeof(tm), 1, f) != 1)
-                return -1;
-            tm = b;
-            if(fwrite(&tm, sizeof(tm), 1, f) != 1)
-                return -1;
-        }
-    }
-
-    fclose(f);
-    this->fileName = fileName;
-    return 0;
+    Document *d = fromXml(doc.documentElement());
+    return d;
 }
 
 void Document::needCalculation(Element *e)
@@ -255,17 +145,6 @@ Document* Document::clone()
         }
     }
 
-    return d;
-}
-
-Document* Document::fromFile(QString filename)
-{
-    Document *d = fromFile(fopen(filename.toAscii(), "rt"));
-    if(d != 0)
-    {
-        d->fileName = filename;
-        d->_name = d->fileName.right(d->fileName.size() - 1 - d->fileName.lastIndexOf("/"));
-    }
     return d;
 }
 
@@ -349,4 +228,43 @@ Document * Document::fromXml(QDomElement d_el)
         return 0;
     }
     return d;
+}
+
+QDomElement Document::elementsToXml(QDomDocument doc)
+{
+    QDomElement result = doc.createElement("elements");
+    foreach(Element *e, elements)
+    {
+        result.appendChild(e->toXml(doc));
+    }
+    return result;
+}
+
+QDomElement Document::connectionsToXml(QDomDocument doc)
+{
+    QDomElement result = doc.createElement("connections");
+    foreach(int a, c->connections.keys())
+    {
+        foreach(int b, *c->connections[a])
+        {
+            if(a < b)
+            {
+                QDomElement connection = doc.createElement("connection");
+                connection.setAttribute("from", a);
+                connection.setAttribute("to", b);
+                result.appendChild(connection);
+            }
+        }
+    }
+
+    return result;
+}
+
+QDomElement Document::toXml(QDomDocument doc)
+{
+    QDomElement document = doc.createElement("Document");
+    document.setAttribute("type", "fullDocument");
+    document.appendChild(elementsToXml(doc));
+    document.appendChild(connectionsToXml(doc));
+    return document;
 }

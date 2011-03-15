@@ -171,3 +171,69 @@ Element * Element::fromXml(QDomElement d_el)
     }
     return el;
 }
+
+QString typeString(int type)
+{
+    switch(type)
+    {
+        case AND:return "and";
+        case OR:return "or";
+        case NOT:return "not";
+        case COMPLEX:return "complex";
+        case ANDNOT:return "andnot";
+        case ORNOT:return "ornot";
+        case XOR:return "xor";
+        case SEND:return "send";
+        case RECEIVE:return "receive";
+    }
+    return "";
+}
+
+QDomElement Element::viewToXml(QDomDocument doc)
+{
+    QDomElement result = doc.createElement("view");
+    result.setAttribute("x", _view.x);
+    result.setAttribute("y", _view.y);
+    result.setAttribute("width", _view.width);
+    result.setAttribute("height", _view.height);
+    return result;
+}
+
+QDomElement Element::inputPointsToXml(QDomDocument doc)
+{
+    QDomElement result = doc.createElement("input_points");
+    for(int i = 0; i < in_cnt; i++)
+    {
+        QDomElement p = doc.createElement("point");
+        p.setAttribute("id", in[i]);
+        p.setAttribute("index", i);
+        result.appendChild(p);
+    }
+    return result;
+}
+
+QDomElement Element::outputPointsToXml(QDomDocument doc)
+{
+    QDomElement result = doc.createElement("output_points");
+    for(int i = 0; i < out_cnt; i++)
+    {
+        QDomElement p = doc.createElement("point");
+        p.setAttribute("id", out[i]);
+        p.setAttribute("index", i);
+        result.appendChild(p);
+    }
+    return result;
+}
+
+QDomElement Element::toXml(QDomDocument doc)
+{
+    QDomElement result = doc.createElement("element");
+    result.setAttribute("type", typeString(_type));
+
+    result.appendChild(viewToXml(doc));
+    result.appendChild(inputPointsToXml(doc));
+    result.appendChild(outputPointsToXml(doc));
+
+    return result;
+
+}

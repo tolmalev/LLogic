@@ -33,15 +33,17 @@ protected:
 public:
     explicit Document(int _type=FULL, QObject *parent = 0);
     ~Document();
-    static   Document* fromFile(FILE *, int _document_type=FULL);
     static   Document* fromFile(QString filename);
 
     static   Document* fromXml(QDomElement d_el);
+    QDomElement toXml(QDomDocument doc);
+    QDomElement elementsToXml(QDomDocument doc);
+    QDomElement connectionsToXml(QDomDocument doc);
+
     bool    parseElements(QDomElement d_el);
     bool    parseConnections(QDomElement d_el);
 
     int     saveToFile(QString _filename = "");
-    int     saveToFile(FILE*);
 
     int document_type(){return _document_type;}
 

@@ -25,24 +25,19 @@ void ComplexElement::recalc()
 Element* ComplexElement::clone()
 {
     ComplexElement *el = new ComplexElement;
+    el->_view = _view;
+    el->in_cnt = in_cnt;
+    el->out_cnt = out_cnt;
+    el->in_connections = in_connections;
+    el->out_connections = out_connections;
     delete el->d;
     el->d = d->clone();
     return el;
 }
 
-
-int ComplexElement::saveToFile(FILE *f)
-{
-    int r = d->saveToFile(f);
-    if(r)return r;
-
-    return 0;
-}
-
 bool ComplexElement::parseInputConnections(QDomElement d_el)
 {
     QDomElement ch_e = d_el.firstChildElement();
-    int in_c = in_cnt;
     while(!ch_e.isNull())
     {
         if(ch_e.tagName() == "connection")
@@ -62,7 +57,6 @@ bool ComplexElement::parseInputConnections(QDomElement d_el)
 bool ComplexElement::parseOutputConnections(QDomElement d_el)
 {
     QDomElement ch_e = d_el.firstChildElement();
-    int out_c = out_cnt;
     while(!ch_e.isNull())
     {
         if(ch_e.tagName() == "connection")
@@ -98,8 +92,6 @@ ComplexElement * ComplexElement::fromXml(QDomElement d_el)
     el->out_cnt = out_c;
     el->in.resize(in_c);
     el->out.resize(out_c);
-    el->in_connections.resize(in_c);
-    el->out_connections.resize(out_c);
 
     QDomElement ch_e = d_el.firstChildElement();
     bool view_ok  = 0;
@@ -152,3 +144,45 @@ ComplexElement * ComplexElement::fromXml(QDomElement d_el)
     return el;
 }
 
+QDomElement ComplexElement::inputConnectionsToXml(QDomDocument doc)
+{
+    QDomElement result = doc.createElement("input_connections");
+    QPair<int, int> p;
+    foreach(p, in_connections)
+    {
+        QDomElement con = doc.createElement("connection");
+        con.setAttribute("from", p.first);
+        con.setAttribute("to", p.second);
+        result.appendChild(con);
+    }
+
+    return result;
+}
+
+QDomElement ComplexElement::outputConnectionsToXml(QDomDocument doc)
+{
+    QDomElement result = doc.createElement("output_connections");
+    QPair<int, int> p;
+    foreach(p, out_connections)
+    {
+        QDomElement con = doc.createElement("connection");
+        con.setAttribute("from", p.first);
+        con.setAttribute("to", p.second);
+        result.appendChild(con);
+    }
+
+    return result;
+}
+
+QDomElement ComplexElement::toXml(QDomDocument doc)
+{
+    QDomElement result = Element::toXml(doc);
+    result.setAttribute("in_cnt", in_cnt);
+    result.setAttribute("out_cnt", out_cnt);
+    result.appendChild(inputConnectionsToXml(doc));
+    result.appendChild(outputConnectionsToXml(doc));
+    result.appendChild(d->elementsToXml(doc));
+    result.appendChild(d->connectionsToXml(doc));
+
+    return result;
+}

@@ -26,9 +26,11 @@ class ComplexElement : public Element
         void        recalc();
         Element*    clone();
         Document* document(){return d;}
-        int         saveToFile(FILE *f);
 
         static ComplexElement *fromXml(QDomElement d_el);
+        QDomElement toXml(QDomDocument);
+        QDomElement inputConnectionsToXml(QDomDocument doc);
+        QDomElement outputConnectionsToXml(QDomDocument doc);
 
         bool parseInputConnections(QDomElement d_el);
         bool parseOutputConnections(QDomElement d_el);

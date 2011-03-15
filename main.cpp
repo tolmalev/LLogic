@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 
 
 
-    Document *d = new Document();
+   /*Document *d = new Document();
     d->addElement(new SendElement);
     d->addElement(new SendElement);
     d->addElement(new OrNotElement);
@@ -32,30 +32,41 @@ int main(int argc, char *argv[])
     d->addConnection(3, 7);
 
     d->addConnection(4, 8);
-    d->addConnection(7, 9);
-    /*d->addElement(new NotElement);
-    d->addElement(new AndElement);
-    d->addElement(new SendElement);
-    d->addElement(new ReceiveElement);
-    d->addConnection(0, 3);
-    d->addConnection(5, 6);*/
+    d->addConnection(7, 9);*/
     //w.showDocument(d);
 
     //d->saveToFile("test.txt");
 
-    Document *d2 = Document::fromFile(fopen("test.txt", "rb"));
-    w.showDocument(d);
+    Document *d2 = Document::fromFile("test.xml");
+    //w.showDocument(d);
     w.showDocument(d2);
     w.showDocument(d2->clone());
 
 
-    QDomDocument doc;
+    /*QDomDocument doc;
     QFile f("test.xml");
     f.open(QIODevice::ReadOnly);
     doc.setContent(&f);
 
     Document *d3 = Document::fromXml(doc.documentElement());
     w.showDocument(d3);
+    f.close();
+
+
+    f.setFileName("test2.xml");
+    f.open(QIODevice::WriteOnly);
+    QDomDocument doc2("test");
+    doc2.appendChild(d3->toXml(doc2));
+    f.write(doc2.toByteArray());
+    f.close();
+
+    f.setFileName("test2.xml");
+    f.open(QIODevice::ReadOnly);
+    QDomDocument doc3;
+    doc3.setContent(&f);
+    Document *d4 = Document::fromXml(doc3.documentElement());
+    w.showDocument(d4);
+    f.close();*/
 
 
     app.exec();

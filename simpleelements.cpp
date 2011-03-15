@@ -22,6 +22,19 @@ Element* ReceiveElement::clone()
     return new ReceiveElement();
 }
 
+void XorElement::recalc()
+{
+    if(c != 0)
+    {
+        c->set(out.first(), c->get(in.first()) ^ c->get(in.last()));
+    }
+}
+
+Element* XorElement::clone()
+{
+    return new XorElement();
+}
+
 void AndElement::recalc()
 {
     if(c != 0)

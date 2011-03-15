@@ -90,7 +90,7 @@ bool Element::parseInputPoints(QDomElement d_el)
         }
         ch_e = ch_e.nextSiblingElement();
     }
-    return !in_c;
+    return in_c==0;
 }
 
 bool Element::parseOutputPoints(QDomElement d_el)
@@ -137,6 +137,8 @@ Element * Element::fromXml(QDomElement d_el)
         el = new SendElement();
     else if(type == "receive")
         el = new ReceiveElement();
+    else if(type == "xor")
+        el = new XorElement();
     else if(type == "complex")
         return ComplexElement::fromXml(d_el);
 

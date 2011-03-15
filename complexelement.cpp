@@ -13,12 +13,12 @@ void ComplexElement::recalc()
     QPair<int, int> p;
     foreach(p, in_connections)
     {
-        d->c->set(p.second, c->get(p.first));
+        d->c->set(p.second, c->get(in[p.first]));
     }
     d->c->calculate(1);
-    foreach(p, in_connections)
+    foreach(p, out_connections)
     {
-        c->set(p.second, d->c->get(p.first));
+        c->set(out[p.second], d->c->get(p.first));
     }
 }
 
@@ -52,11 +52,11 @@ bool ComplexElement::parseInputConnections(QDomElement d_el)
 
             if(to == -1 || from == -1)
                 return 0;
-            in_connections[in_cnt - in_c--] = QPair<int, int>(from, to);
+            in_connections.push_back(QPair<int, int>(from, to));
         }
         ch_e = ch_e.nextSiblingElement();
     }
-    return !in_c;
+    return 1;
 }
 
 bool ComplexElement::parseOutputConnections(QDomElement d_el)
@@ -72,11 +72,11 @@ bool ComplexElement::parseOutputConnections(QDomElement d_el)
 
             if(to == -1 || from == -1)
                 return 0;
-            out_connections[out_cnt - out_c--] = QPair<int, int>(from, to);
+            out_connections.push_back(QPair<int, int>(from, to));
         }
         ch_e = ch_e.nextSiblingElement();
     }
-    return !out_c;
+    return 1;
 }
 
 ComplexElement * ComplexElement::fromXml(QDomElement d_el)
@@ -98,6 +98,8 @@ ComplexElement * ComplexElement::fromXml(QDomElement d_el)
     el->out_cnt = out_c;
     el->in.resize(in_c);
     el->out.resize(out_c);
+    el->in_connections.resize(in_c);
+    el->out_connections.resize(out_c);
 
     QDomElement ch_e = d_el.firstChildElement();
     bool view_ok  = 0;
@@ -128,6 +130,14 @@ ComplexElement * ComplexElement::fromXml(QDomElement d_el)
         else if(ch_e.tagName() == "output_connections")
         {
             output_connections_ok = el->parseOutputConnections(ch_e);
+        }
+        else if(ch_e.tagName() == "elements")
+        {
+            elements_ok = el->d->parseElements(ch_e);
+        }
+        else if(ch_e.tagName() == "connections")
+        {
+            connections_ok = el->d->parseConnections(ch_e);
         }
 
         ch_e = ch_e.nextSiblingElement();

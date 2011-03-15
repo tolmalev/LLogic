@@ -27,6 +27,14 @@ class ReceiveElement : public Element
         virtual Element*clone();
 };
 
+class XorElement : public Element
+{
+    public:
+        XorElement() : Element(0, 2, 1, XOR) {};
+        virtual void recalc();
+        virtual Element*clone();
+};
+
 class AndElement : public Element
 {
     public:

@@ -147,6 +147,8 @@ bool Controller::dfs(int i, QMap<int, bool> *mp, int k)
 
 int Controller::add_connection(int id1, int id2)
 {
+    if(value.find(id1) == value.end() || value.find(id2) == value.end())
+        return -1;
     if(connected(id1, id2))
         return -2;
     bool h1 = has_in_e_connected(id1);

@@ -13,11 +13,20 @@ class WorkPanel : public QWidget
 
     friend class Document;
     QMap<int, PointWidget*> points;
+    QMap<int, PointWidget*> input_points;
+    QMap<int, PointWidget*> output_points;
 protected:
     Document *d;
+    ComplexElement *ce;
+
+    int panel_type;
+    enum types{
+        DOCUMENT,
+        ELEMENT,
+    };
 
 public:
-    explicit WorkPanel(QWidget *parent = 0);
+    explicit WorkPanel(ComplexElement*ce = 0, QWidget *parent = 0);
     void paintEvent(QPaintEvent *);
 
     void addElement(Element* e);

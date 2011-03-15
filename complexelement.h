@@ -15,6 +15,8 @@ class ComplexElement : public Element
     Q_OBJECT
 
     friend class ComplexElementDocument;
+    friend class WorkPanel;
+    friend class ElementLibrary;
 
     protected:
         Document*d;

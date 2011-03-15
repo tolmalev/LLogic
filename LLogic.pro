@@ -20,7 +20,8 @@ SOURCES += main.cpp\
     simpleelements.cpp \
     complexelement.cpp \
     document.cpp \
-    pointwidget.cpp
+    pointwidget.cpp \
+    elementlibrary.cpp
 
 HEADERS  += mainwindow.h \
     workpanel.h \
@@ -33,7 +34,8 @@ HEADERS  += mainwindow.h \
     complexelement.h \
     document.h \
     filestructs.h \
-    pointwidget.h
+    pointwidget.h \
+    elementlibrary.h
 
 FORMS    +=
 

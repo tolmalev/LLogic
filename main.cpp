@@ -42,37 +42,9 @@ int main(int argc, char *argv[])
     w.showDocument(d2);
     w.showDocument(d2->clone());
 
-
-    /*QDomDocument doc;
-    QFile f("test.xml");
-    f.open(QIODevice::ReadOnly);
-    doc.setContent(&f);
-
-    Document *d3 = Document::fromXml(doc.documentElement());
-    w.showDocument(d3);
-    f.close();
-
-
-    f.setFileName("test2.xml");
-    f.open(QIODevice::WriteOnly);
-    QDomDocument doc2("test");
-    doc2.appendChild(d3->toXml(doc2));
-    f.write(doc2.toByteArray());
-    f.close();
-
-    f.setFileName("test2.xml");
-    f.open(QIODevice::ReadOnly);
-    QDomDocument doc3;
-    doc3.setContent(&f);
-    Document *d4 = Document::fromXml(doc3.documentElement());
-    w.showDocument(d4);
-    f.close();*/
-
+    d2->saveToFile("test3.xml");
 
     app.exec();
-
-    d2->saveToFile("test.lod");
-
 
 
 

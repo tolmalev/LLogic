@@ -13,7 +13,9 @@ class Document;
 class ComplexElementDocument;
 
 class Element;
+class ComplexElement;
 class Controller;
+class ElementLibrary;
 
 #define grid_size 10
 

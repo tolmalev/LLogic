@@ -1,9 +1,11 @@
 #include "complexelement.h"
 #include "controller.h"
+#include "elementlibrary.h"
 
 ComplexElement::ComplexElement()
 {
-    d = new Document(Document::ELEMENT);
+    d = new Document(Document::ELEMENT, this);
+    d->library = 0;
 
     _type = COMPLEX;
 }
@@ -32,6 +34,7 @@ Element* ComplexElement::clone()
     el->out_connections = out_connections;
     delete el->d;
     el->d = d->clone();
+    el->d->ce = el;
     return el;
 }
 
@@ -131,6 +134,10 @@ ComplexElement * ComplexElement::fromXml(QDomElement d_el)
         {
             connections_ok = el->d->parseConnections(ch_e);
         }
+        else if(ch_e.tagName() == "library")
+        {
+            el->d->library = ElementLibrary::fromXml(ch_e);
+        }
 
         ch_e = ch_e.nextSiblingElement();
     }
@@ -141,6 +148,8 @@ ComplexElement * ComplexElement::fromXml(QDomElement d_el)
         delete el;
         return 0;
     }
+    if(el->d->library == 0)
+        el->d->library = new ElementLibrary;
     return el;
 }
 

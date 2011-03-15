@@ -3,16 +3,35 @@
 
 #include "workpanel.h"
 #include "element.h"
+#include "complexelement.h"
 #include "elementwidget.h"
 #include "stdio.h"
 #include "document.h"
 #include "controller.h"
 #include "pointwidget.h"
 
-WorkPanel::WorkPanel(QWidget *parent) :
-    QWidget(parent)
+WorkPanel::WorkPanel(ComplexElement *ce, QWidget *parent) :
+    QWidget(parent), ce(ce)
 {
     setMouseTracking(1);
+    panel_type = DOCUMENT;
+    if(ce != 0)
+    {
+        panel_type = ELEMENT;
+        for(int i = 0; i < ce->in_cnt; i++)
+        {
+            PointWidget * pw = new PointWidget(this);
+            pw->move(0, (i+1)*grid_size*2-3);
+            input_points[i] = pw;
+        }
+        for(int i = 0; i < ce->out_cnt; i++)
+        {
+            PointWidget * pw = new PointWidget(this);
+            pw->move(40*grid_size, (i+1)*grid_size*2-3);
+            output_points[i] = pw;
+        }
+
+    }
     d = 0;
 }
 
@@ -33,11 +52,28 @@ void WorkPanel::paintEvent(QPaintEvent * ev)
         {
             if(k < b)
             {
-                QPoint p1 = d->workPanel()->points[k]->mapTo(d->workPanel(), QPoint(3, 3));
-                QPoint p2 = d->workPanel()->points[b]->mapTo(d->workPanel(), QPoint(3, 3));
+                QPoint p1 = points[k]->mapTo(this, QPoint(3, 3));
+                QPoint p2 = points[b]->mapTo(this, QPoint(3, 3));
                 painter.drawLine(p1, p2);
             }
         }
+    }
+    if(ce != 0)
+    {
+        QPair<int, int> p;
+        foreach(p, ce->in_connections)
+        {
+            QPoint p1 = input_points[p.first]->mapTo(this, QPoint(3,3));
+            QPoint p2 = points[p.second]->mapTo(this, QPoint(3,3));
+            painter.drawLine(p1, p2);
+        }
+        foreach(p, ce->out_connections)
+        {
+            QPoint p1 = points[p.first]->mapTo(this, QPoint(3,3));
+            QPoint p2 = output_points[p.second]->mapTo(this, QPoint(3,3));
+            painter.drawLine(p1, p2);
+        }
+
     }
 }
 

@@ -4,14 +4,16 @@
 #include "workpanel.h"
 #include "filestructs.h"
 #include "complexelement.h"
+#include "elementlibrary.h"
 #include "simpleelements.h"
 
-Document::Document(int _type, QObject *parent) : QObject(parent), _document_type(_type)
+Document::Document(int _type, ComplexElement*el, QObject *parent) : QObject(parent), _document_type(_type), ce(el)
 {
     c = new Controller();
     connect(c, SIGNAL(timeout(Controller*)), this, SLOT(timeout(Controller*)));
     connect(c, SIGNAL(calculation_finished(int)), this, SIGNAL(calculation_finished(int)));
     panel = 0;
+    library = 0;
     _name = "Untiteled.lod";
     fileName = _name;
 
@@ -40,7 +42,10 @@ WorkPanel* Document::workPanel()
 
 void Document::createPanel()
 {
-    panel = new WorkPanel;
+    if(ce == 0)
+        panel = new WorkPanel;
+    else
+        panel = new WorkPanel(ce);
     panel->d = this;
     foreach(Element* e, elements)
         panel->addElement(e);
@@ -103,6 +108,8 @@ Document::~Document()
     if(panel)
         delete panel;
     delete c;
+    if(library)
+        delete library;
 }
 
 int Document::addConnection(int id1, int id2)
@@ -114,6 +121,7 @@ Document* Document::clone()
 {
     Document *d = new Document;
     d->_name = name();
+    d->library = library->clone();
     foreach(Element*e, elements)
     {
         Element *el = e->clone();
@@ -205,6 +213,7 @@ Document * Document::fromXml(QDomElement d_el)
     if(type != "fullDocument")
         return 0;
     Document *d = new Document;
+    d->library = 0;
     QDomElement ch_e = d_el.firstChildElement();
     bool elements_ok = 0;
     bool connections_ok = 0;
@@ -219,6 +228,10 @@ Document * Document::fromXml(QDomElement d_el)
         {
             connections_ok = d->parseConnections(ch_e);
         }
+        else if(ch_e.tagName() == "library")
+        {
+            d->library = ElementLibrary::fromXml(ch_e);
+        }
         ch_e = ch_e.nextSiblingElement();
     }
 
@@ -227,6 +240,8 @@ Document * Document::fromXml(QDomElement d_el)
         delete d;
         return 0;
     }
+    if(d->library == 0)
+        d->library = new ElementLibrary;
     return d;
 }
 
@@ -264,6 +279,7 @@ QDomElement Document::toXml(QDomDocument doc)
 {
     QDomElement document = doc.createElement("Document");
     document.setAttribute("type", "fullDocument");
+    document.appendChild(library->toXml(doc));
     document.appendChild(elementsToXml(doc));
     document.appendChild(connectionsToXml(doc));
     return document;

@@ -18,6 +18,8 @@ class Document : public QObject
     friend class ComplexElement;
 protected:
     Controller * c;
+    ComplexElement *ce;
+    ElementLibrary *library;
     QList<Element*> elements;
     WorkPanel *panel;
     void createPanel();
@@ -25,13 +27,14 @@ protected:
     QString fileName;
     bool auto_calculation;
     int _document_type;
+
     enum types{
         FULL,
         ELEMENT
     };
 
 public:
-    explicit Document(int _type=FULL, QObject *parent = 0);
+    explicit Document(int _type=FULL, ComplexElement* el = 0, QObject *parent = 0);
     ~Document();
     static   Document* fromFile(QString filename);
 

@@ -16,6 +16,7 @@ class Document : public QObject
 
     friend class WorkPanel;
     friend class ComplexElement;
+    friend class LibraryElement;
 protected:
     Controller * c;
     ComplexElement *ce;

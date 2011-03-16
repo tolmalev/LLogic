@@ -17,7 +17,8 @@ enum elementTypes{
     XOR,
     COMPLEX,
     SEND,
-    RECEIVE
+    RECEIVE,
+    LIBRARY,
 };
 
 QString typeString(int type);
@@ -29,6 +30,7 @@ class Element : public QObject
     friend class ElementWidget;
     friend class WorkPanel;
     friend class Document;
+    friend class LibraryElement;
 
     protected:
         int _type;
@@ -37,6 +39,7 @@ class Element : public QObject
         QVector<int> out;
         int in_cnt, out_cnt;
         Controller *c;
+        Document *d;
         struct VisualParams{
             int x, y, width, height;
         } _view;
@@ -46,7 +49,7 @@ class Element : public QObject
         Element();
         Element(Controller*c, int _in_cnt = -1, int _out_cnt = -1, int type = SIMPLE);
 
-        static Element *fromXml(QDomElement);
+        static Element *fromXml(QDomElement, Document*d=0);
         virtual QDomElement toXml(QDomDocument);
         QDomElement viewToXml(QDomDocument);
         QDomElement inputPointsToXml(QDomDocument);

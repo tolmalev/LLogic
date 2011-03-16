@@ -75,4 +75,19 @@ class NotElement : public Element
         virtual Element*clone();
 };
 
+class LibraryElement : public Element
+{
+    QString name;
+    protected:
+        LibraryElement(QString name);
+    public:
+        LibraryElement(QString name, Document*d);
+        void init(Document *d);
+        virtual void recalc();
+        virtual Element*clone();
+
+        static LibraryElement *fromXml(QDomElement d_el, Document *d);
+        QDomElement toXml(QDomDocument);
+};
+
 #endif // SIMPLEELEMENTS_H

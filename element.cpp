@@ -115,7 +115,7 @@ bool Element::parseOutputPoints(QDomElement d_el)
     return !out_c;
 }
 
-Element * Element::fromXml(QDomElement d_el)
+Element * Element::fromXml(QDomElement d_el, Document*d)
 {
     Element * el = 0;
     if(d_el.tagName() != "element")
@@ -141,6 +141,8 @@ Element * Element::fromXml(QDomElement d_el)
         el = new XorElement();
     else if(type == "complex")
         return ComplexElement::fromXml(d_el);
+    else if(type == "library")
+        return LibraryElement::fromXml(d_el, d);
 
     QDomElement ch_e = d_el.firstChildElement();
     bool view_ok  = 0;
@@ -185,6 +187,7 @@ QString typeString(int type)
         case XOR:return "xor";
         case SEND:return "send";
         case RECEIVE:return "receive";
+        case LIBRARY:return "library";
     }
     return "";
 }

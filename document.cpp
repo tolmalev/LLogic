@@ -7,7 +7,7 @@
 #include "elementlibrary.h"
 #include "simpleelements.h"
 
-Document::Document(int _type, ComplexElement*el, QObject *parent) : QObject(parent), _document_type(_type), ce(el)
+Document::Document(int _type, ComplexElement*el, QObject *parent) : QObject(parent), ce(el),_document_type(_type)
 {
     c = new Controller();
     connect(c, SIGNAL(timeout(Controller*)), this, SLOT(timeout(Controller*)));
@@ -28,6 +28,7 @@ void Document::timeout(Controller *_c)
 void Document::addElement(Element *e)
 {
     e->setController(c);
+    e->d = this;
     elements.push_back(e);
     if(panel != 0)
         panel->addElement(e);
@@ -121,7 +122,8 @@ Document* Document::clone()
 {
     Document *d = new Document;
     d->_name = name();
-    d->library = library->clone();
+    if(library)
+        d->library = library->clone();
     foreach(Element*e, elements)
     {
         Element *el = e->clone();
@@ -130,6 +132,7 @@ Document* Document::clone()
         el->out = e->out;
 
         el->c = d->c;
+        el->d = d;
         foreach(int id, el->in)
         {
             d->c->new_point(id);
@@ -163,10 +166,11 @@ bool Document::parseElements(QDomElement d_el)
     {
         if(ch_e.tagName() == "element")
         {
-            Element *e = Element::fromXml(ch_e);
+            Element *e = Element::fromXml(ch_e, this);
             if(e == 0)
                 return 0;
             e->c = c;
+            e->d = this;
             foreach(int i, e->in)
             {
                 if(c->new_point(i) < 0)

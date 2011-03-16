@@ -119,10 +119,10 @@ QDomElement ElementLibrary::elementToXml(QDomDocument doc, QString name)
     result.setAttribute("out_cnt", el->out_cnt);
 
     QDomElement view = doc.createElement("view");
-    result.setAttribute("x", 0);
-    result.setAttribute("y", 0);
-    result.setAttribute("width", el->_view.width);
-    result.setAttribute("height", el->_view.height);
+    view.setAttribute("x", 0);
+    view.setAttribute("y", 0);
+    view.setAttribute("width", el->_view.width);
+    view.setAttribute("height", el->_view.height);
 
     result.appendChild(view);
 
@@ -131,6 +131,7 @@ QDomElement ElementLibrary::elementToXml(QDomDocument doc, QString name)
     result.appendChild(el->d->elementsToXml(doc));
     result.appendChild(el->d->connectionsToXml(doc));
 
+    return result;
 }
 
 QDomElement ElementLibrary::toXml(QDomDocument doc)

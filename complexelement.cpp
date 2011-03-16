@@ -30,6 +30,8 @@ Element* ComplexElement::clone()
     el->_view = _view;
     el->in_cnt = in_cnt;
     el->out_cnt = out_cnt;
+    el->in.resize(in_cnt);
+    el->out.resize(out_cnt);
     el->in_connections = in_connections;
     el->out_connections = out_connections;
     delete el->d;

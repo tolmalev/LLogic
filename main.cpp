@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
     w.showDocument(d2->clone());
 
     d2->saveToFile("test3.xml");
+    w.showDocument(Document::fromFile("test3.xml"));
 
     app.exec();
 

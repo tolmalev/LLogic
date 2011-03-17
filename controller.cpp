@@ -32,10 +32,10 @@ int Controller::get(int id)
     return -1;
 }
 
-void Controller::set(int id, int val)
+void Controller::set(int id, int val, bool forse)
 {
     if(value.find(id) != value.end())
-        if(value[id] != val)
+        if(value[id] != val || forse)
         {
             if(e_connected[id] != 0)
                 queue.push_back(e_connected[id]);
@@ -174,14 +174,22 @@ void Controller::stop_calculation()
     thread->terminate();
     thread->wait();
     qWarning("controller: calculation terminated");
+    queue.clear();
+    foreach(int id, value.keys())
+    {
+        qWarning("%d", id);
+        set(id, value[id], 1);
+        Element*e =e_connected[id];
+        if(e)
+        {
+            queue.push_back(e);
+            qWarning("add %d", e->type());
+        }
+    }
 }
 
 void Controller::CalcThread::run()
 {
-    /*volatile int res = 0;
-    for(int i = 0; i < 1000000000; i++)
-        for(int j = 0; j < 1; j++)
-            res++;*/
     while(!c->queue.empty())
     {
         Element*el = c->queue.first();

@@ -40,10 +40,10 @@ int main(int argc, char *argv[])
     Document *d2 = Document::fromFile("test.xml");
     //w.showDocument(d);
     w.showDocument(d2);
-    w.showDocument(d2->clone());
+    //w.showDocument(d2->clone());
 
-    d2->saveToFile("test3.xml");
-    w.showDocument(Document::fromFile("test3.xml"));
+    //d2->saveToFile("test3.xml");
+    //w.showDocument(Document::fromFile("test3.xml"));
 
     app.exec();
 

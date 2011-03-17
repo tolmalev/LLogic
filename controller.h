@@ -43,7 +43,7 @@ public:
     public:
         Controller();
         ~Controller();
-        void    set(int id, int value);
+        void    set(int id, int value, bool forse=0);
         int     get(int id);
         int     new_point(int id=-1);
         void    remove_point(int id);

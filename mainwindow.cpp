@@ -13,6 +13,8 @@
 #include "workpanel.h"
 #include "complexelement.h"
 
+MainWindow* MainWindow::wnd = 0;
+
 void MainWindow::triggered(QAction *act)
 {
     if(act->text() == "Open")
@@ -38,6 +40,7 @@ void MainWindow::triggered(QAction *act)
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent)
 {
+    wnd = this;
     calculating_message = 0;
     setGeometry(100, 100, 800, 500);
 

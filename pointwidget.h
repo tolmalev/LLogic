@@ -10,6 +10,7 @@ class PointWidget : public QWidget
     Q_OBJECT
 
     friend class WorkPanel;
+    WorkPanel *panel;
 
 protected:
     int drawType;

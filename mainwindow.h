@@ -35,6 +35,9 @@ protected:
     QMap<QWidget*, ElementWidget*>   rmap;
     QMap<QWidget*, Document*>       documents;
 
+    static MainWindow *wnd;
+
+
     int instrument;
     enum instruments{
         NONE,

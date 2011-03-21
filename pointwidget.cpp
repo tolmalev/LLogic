@@ -1,7 +1,7 @@
 #include <QPainter>
 #include <QEvent>
 #include <QMouseEvent>
-
+#include "workpanel.h"
 #include "pointwidget.h"
 
 PointWidget::PointWidget(QWidget *parent) :
@@ -49,4 +49,5 @@ void PointWidget::mouseMoveEvent(QMouseEvent *ev)
 void PointWidget::mousePressEvent(QMouseEvent *ev)
 {
     ev->accept();
+    panel->grabMouse();
 }

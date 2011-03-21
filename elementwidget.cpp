@@ -8,18 +8,7 @@
 ElementWidget::ElementWidget(QWidget *parent) :
     QWidget(parent)
 {
-    //setAutoFillBackground(1);
-    setGeometry(0, 0, 50, 50);
-
-    setMouseTracking(1);
     drawType=0;
-
-    moving = 0;
-
-    timer.setInterval(500);
-    timer.setSingleShot(1);
-    timer.stop();
-    connect(&timer, SIGNAL(timeout()), this, SLOT(changeDrawType()));
 }
 
 QPoint ElementWidget::getPointPos(int type, int n)
@@ -63,21 +52,6 @@ void ElementWidget::paintEvent(QPaintEvent *event)
     }
 }
 
-void ElementWidget::mousePressEvent(QMouseEvent * ev)
-{
-    timer.stop();
-    setDrawType(0);
-    px = ev->x();
-    py = ev->y();
-    moving = 1;
-}
-
-void ElementWidget::mouseReleaseEvent(QMouseEvent * ev)
-{
-    timer.stop();
-    setDrawType(0);
-    moving = 0;
-}
 
 int min(int a, int b)
 {
@@ -93,33 +67,9 @@ int max(int a, int b)
     return b;
 }
 
-void ElementWidget::mouseMoveEvent(QMouseEvent * ev)
-{
-    if(moving)
-    {
-        e->_view.x = (int)( (double)max(0, x()+ev->x()-px) / grid_size + 0.5);
-        e->_view.y = (int)( (double)max(0, y()+ev->y()-py) / grid_size + 0.5);
-
-        move(e->_view.x*grid_size, e->_view.y*grid_size);
-
-        parentWidget()->update();
-    }
-}
-
 void ElementWidget::mouseDoubleClickEvent(QMouseEvent * ev)
 {
     emit doubleClicked(this);
-}
-
-void ElementWidget::enterEvent(QEvent *)
-{
-    timer.start();
-}
-
-void ElementWidget::leaveEvent(QEvent *)
-{
-    timer.stop();
-    setDrawType(0);
 }
 
 void ElementWidget::changeDrawType()

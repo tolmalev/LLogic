@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 
 
 
-   /*Document *d = new Document();
+   Document *d = new Document();
     d->addElement(new SendElement);
     d->addElement(new SendElement);
     d->addElement(new OrNotElement);
@@ -32,13 +32,13 @@ int main(int argc, char *argv[])
     d->addConnection(3, 7);
 
     d->addConnection(4, 8);
-    d->addConnection(7, 9);*/
+    d->addConnection(7, 9);
     //w.showDocument(d);
 
     //d->saveToFile("test.txt");
 
     Document *d2 = Document::fromFile("test.xml");
-    //w.showDocument(d);
+    w.showDocument(d);
     w.showDocument(d2);
     //w.showDocument(d2->clone());
 

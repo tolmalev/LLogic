@@ -16,7 +16,6 @@ class ElementWidget : public QWidget
         bool moving;
         int px, py;
         int drawType;
-        QTimer timer;
 
         Element * e;
     public:
@@ -28,16 +27,9 @@ class ElementWidget : public QWidget
         Element*    element(){return e;}
 
         virtual void paintEvent ( QPaintEvent * event );
-
-        void mousePressEvent(QMouseEvent *);
-        void mouseMoveEvent(QMouseEvent *);
-        void mouseReleaseEvent(QMouseEvent *);
         void mouseDoubleClickEvent(QMouseEvent *);
 
         QPoint getPointPos(int type, int n);
-
-        void enterEvent(QEvent *);
-        void leaveEvent(QEvent *);
 
         void setDrawType(int);
 

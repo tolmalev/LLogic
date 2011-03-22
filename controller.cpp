@@ -59,10 +59,19 @@ int Controller::new_point(int id)
 
 void Controller::remove_point(int id)
 {
-    delete connections[id];
+    if(in_e_connected[id])
+        set(id, 0);
     value.remove(id);
+
+    foreach(int i, *connections[id])
+    {
+        connections[i]->removeOne(id);
+    }
+
+    delete connections[id];
     connections.remove(id);
     e_connected.remove(id);
+    in_e_connected.remove(id);
 }
 
 void Controller::connect_element(int id, Element *el)
@@ -145,16 +154,25 @@ bool Controller::dfs(int i, QMap<int, bool> *mp, int k)
     return 0;
 }
 
-int Controller::add_connection(int id1, int id2)
+bool Controller::canConnect(int id1, int id2)
 {
     if(value.find(id1) == value.end() || value.find(id2) == value.end())
-        return -1;
+        return 0;
     if(connected(id1, id2))
-        return -2;
+        return 0;
     bool h1 = has_in_e_connected(id1);
     bool h2 = has_in_e_connected(id2);
     if(h1 && h2)
+        return 0;
+    return 1;
+}
+
+int Controller::add_connection(int id1, int id2)
+{
+    if(!canConnect(id1, id2))
         return -1;
+    bool h1 = has_in_e_connected(id1);
+    bool h2 = has_in_e_connected(id2);
     connections[id1]->push_back(id2);
     connections[id2]->push_back(id1);
     if(h1)
@@ -214,4 +232,17 @@ void Controller::calc_terminated()
 void Controller::timer_timeout()
 {
     emit timeout(this);
+}
+
+void Controller::removeFromQueue(Element *e)
+{
+    QQueue<Element*>::iterator it = queue.begin(), it1;
+    while(it != queue.end())
+    {
+        it1 = it;
+        it1++;
+        if(*it == e)
+            queue.erase(it, it1);
+        it = it1;
+    }
 }

@@ -54,6 +54,9 @@ public:
         bool    has_in_e_connected(int id, QMap<int, bool> *mp);
         bool    connected(int id1, int id2);
         int     add_connection(int id1, int id2);
+        bool    canConnect(int id1, int id2);
+
+        void    removeFromQueue(Element *e);
 
         void    setTimeout(int time);
         void    calculate(bool wait=0);

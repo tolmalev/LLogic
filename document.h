@@ -5,6 +5,7 @@
 #include <QList>
 #include <QFile>
 #include <QString>
+#include <QSet>
 #include <QtXml/QDomElement>
 
 #include "classes.h"
@@ -21,7 +22,7 @@ protected:
     Controller * c;
     ComplexElement *ce;
     ElementLibrary *library;
-    QList<Element*> elements;
+    QSet<Element*> elements;
     WorkPanel *panel;
     void createPanel();
     QString _name;
@@ -32,6 +33,14 @@ protected:
     enum types{
         FULL,
         ELEMENT
+    };
+
+    int instrument;
+    enum inst{
+        SELECT,
+        CONNECT,
+        ADDELEMENT,
+        ADDPOINT,
     };
 
 public:
@@ -49,12 +58,16 @@ public:
 
     int     saveToFile(QString _filename = "");
 
-    int document_type(){return _document_type;}
+    int     document_type(){return _document_type;}
 
     virtual Document * clone();
 
     void addElement(Element* e);
     int addConnection(int id1, int id2);
+    bool canConnect(int id1, int id2);
+    void removePoint(int id);
+
+    void calcIfNeed();
 
     WorkPanel *workPanel();
     QString name(){return _name;}

@@ -25,12 +25,23 @@ class MovingWidget : public QWidget{
         void paintEvent(QPaintEvent *);
 };
 
+class LiningWidget : public QWidget{
+    Q_OBJECT
+
+    WorkPanel *wp;
+
+    public:
+        LiningWidget(QWidget *parent, WorkPanel*wp) : QWidget(parent), wp(wp){}
+        void paintEvent(QPaintEvent *);
+};
+
 class WorkPanel : public QWidget
 {
     Q_OBJECT
 
     friend class Document;
     friend class MovingWidget;
+    friend class LiningWidget;
     QMap<int, PointWidget*> points;
     QMap<int, PointWidget*> input_points;
     QMap<int, PointWidget*> output_points;
@@ -46,8 +57,16 @@ protected:
 
     QWidget * tmpw;
     QPoint p1, p2;
-    QList<ElementWidget*> elementWidgets;
+    PointWidget* pw1, *pw2;
+    QSet<ElementWidget*> elementWidgets;
     QSet<ElementWidget*> selected;
+
+    int state;
+    enum states{
+        NONE,
+        MOVING,
+        LINING,
+    };
 
 public:
     explicit WorkPanel(ComplexElement*ce = 0, QWidget *parent = 0);
@@ -59,9 +78,13 @@ public:
     void mouseReleaseEvent(QMouseEvent *);
     void mousePressEvent(QMouseEvent * ev);
 
+    void keyPressEvent(QKeyEvent *);
+
     bool eventFilter(QObject *o, QEvent *e);
 
     bool canMoveTo(ElementWidget *ew, QPoint p);
+
+    void contextMenuEvent(QContextMenuEvent *);
 
     static QPoint toGrid(QPoint a);
 

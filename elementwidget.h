@@ -12,6 +12,8 @@ class ElementWidget : public QWidget
 {
     Q_OBJECT
 
+    friend class WorkPanel;
+
     protected:
         bool moving;
         int px, py;

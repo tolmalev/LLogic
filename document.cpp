@@ -29,7 +29,7 @@ void Document::addElement(Element *e)
 {
     e->setController(c);
     e->d = this;
-    elements.push_back(e);
+    elements.insert(e);
     if(panel != 0)
         panel->addElement(e);
 }
@@ -115,7 +115,14 @@ Document::~Document()
 
 int Document::addConnection(int id1, int id2)
 {
-    return c->add_connection(id1, id2);
+    int res = c->add_connection(id1, id2);
+    if(res == 0 && auto_calculation)
+    {
+        c->calculate();
+        if(panel)
+            panel->update();
+    }
+    return 0;
 }
 
 Document* Document::clone()
@@ -145,7 +152,7 @@ Document* Document::clone()
             d->c->connect_in_element(id, el);
         }
 
-        d->elements.push_back(el);
+        d->elements.insert(el);
     }
 
     foreach(int a, c->connections.keys())
@@ -184,7 +191,7 @@ bool Document::parseElements(QDomElement d_el)
                 c->connect_in_element(i, e);
             }
 
-            elements.push_back(e);
+            elements.insert(e);
         }
         ch_e = ch_e.nextSiblingElement();
     }
@@ -287,4 +294,20 @@ QDomElement Document::toXml(QDomDocument doc)
     document.appendChild(elementsToXml(doc));
     document.appendChild(connectionsToXml(doc));
     return document;
+}
+
+bool Document::canConnect(int id1, int id2)
+{
+    return c->canConnect(id1, id2);
+}
+
+void Document::calcIfNeed()
+{
+    if(auto_calculation)
+        c->calculate();
+}
+
+void Document::removePoint(int id)
+{
+    c->remove_point(id);
 }

@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
     d->addElement(new OrNotElement);
     d->addElement(new ReceiveElement);
     d->addElement(new ReceiveElement);
+    d->addElement(new ReceiveElement);
 
     d->addConnection(0, 2);
     d->addConnection(1, 6);

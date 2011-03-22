@@ -18,13 +18,7 @@ protected:
 public:
     explicit PointWidget(QWidget *parent = 0);
     void paintEvent(QPaintEvent *);
-
-    void enterEvent(QEvent *);
-    void leaveEvent(QEvent *);
-
-    void mouseMoveEvent(QMouseEvent *);
-    void mousePressEvent(QMouseEvent *);
-
+    void setDrawType(int dt);
 signals:
 
 public slots:

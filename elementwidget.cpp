@@ -9,6 +9,7 @@ ElementWidget::ElementWidget(QWidget *parent) :
     QWidget(parent)
 {
     drawType=0;
+    setMouseTracking(1);
 }
 
 QPoint ElementWidget::getPointPos(int type, int n)
@@ -126,6 +127,7 @@ void SendElementWidget::mouseDoubleClickEvent(QMouseEvent *)
     ((SendElement*)e)->val ^= 1;
     qWarning("%d", ((SendElement*)e)->val);
     emit needCalculation(e);
+    update();
 }
 
 void ReceiveElementWidget::updateSize()

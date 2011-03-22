@@ -6,12 +6,14 @@
 #include <QScrollArea>
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QToolButton>
 
 #include "mainwindow.h"
 #include "document.h"
 #include "controller.h"
 #include "workpanel.h"
 #include "complexelement.h"
+#include "simpleelements.h"
 
 MainWindow* MainWindow::wnd = 0;
 
@@ -51,20 +53,41 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QHBoxLayout *hb = new QHBoxLayout();
     QVBoxLayout *vb = new QVBoxLayout();
-    QGridLayout *gl = new QGridLayout();
     hb->setSpacing(0);
     vb->setMargin(1);
     leftWidget->setLayout(vb);
 
-    toolBar = new QWidget();
-    toolBar->setLayout(gl);
-    gl->addWidget(new QLabel("tets"));
-    vb->addWidget(toolBar);
+    toolBar = new QToolBar();
+    aand = new QAction("and", toolBar);
+    asend = new QAction("send", toolBar);
+    arec = new QAction("rec", toolBar);
+    aor = new QAction("or", toolBar);
+    aselect = new QAction("select", toolBar);
+    aautoCalc = new QAction("auto", toolBar);
+    QActionGroup *ag = new QActionGroup(toolBar);
+    aand->setCheckable(1);
+    arec->setCheckable(1);
+    asend->setCheckable(1);
+    aor->setCheckable(1);
+    aselect->setCheckable(1);
+    aselect->setChecked(1);
+    aautoCalc->setCheckable(1);
+    ag->addAction(aand);
+    ag->addAction(aor);
+    ag->addAction(asend);
+    ag->addAction(arec);
+    ag->addAction(aselect);
 
-    QPushButton * and_btn = new QPushButton("and");
-    QPushButton * or_btn = new QPushButton("or");
-    gl->addWidget(and_btn);
-    gl->addWidget(or_btn);
+    toolBar->addActions(ag->actions());
+    toolBar->addAction(aautoCalc);
+    toolBar->show();
+
+    connect(toolBar, SIGNAL(actionTriggered(QAction*)), this, SLOT(toolBarAction(QAction*)));
+
+    addToolBar((QToolBar*)toolBar);
+
+
+    //vb->addWidget(toolBar);
 
 
     menuBar = new QMenuBar();
@@ -97,43 +120,35 @@ MainWindow::MainWindow(QWidget *parent) :
     //tabWidget->setTabsClosable(1);
 
     connect(tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeTab(int)));
-
-    QPushButton * btn = new QPushButton(this->style()->standardIcon(QStyle::SP_TitleBarCloseButton), "");
-
-
-    connect(btn, SIGNAL(clicked()), this, SLOT(closeCurrentTab()));
-
-    tabWidget->setCornerWidget(btn);
 }
 
 MainWindow::~MainWindow()
 {
 }
 
-#include <QFileDialog>
-
 void MainWindow::doubleClicked(ElementWidget * ew)
 {
-    if(map.find(ew) == map.end())
-    {        
-        if(ew->element()->type() == COMPLEX)
-        {
-            map[ew] = ((ComplexElement*)ew->element())->document()->workPanel();
-            rmap[map[ew]]=ew;
-            tabWidget->addTab(map[ew], "testnew");
-            tabWidget->setCurrentWidget(map[ew]);
-        }
+    if(ew->element()->type() != COMPLEX)
+         return;
+    ComplexElement *ce = (ComplexElement*)(ew->element());
+    if(widgets.find(ce->document()) == widgets.end())
+    {
+        widgets[ce->document()] = ce->document()->workPanel();
+        documents[widgets[ce->document()]] = ce->document();
+        tabWidget->addTab(widgets[ce->document()], "testnew");
+        tabWidget->setCurrentWidget(widgets[ce->document()]);
     }
     else
-        tabWidget->setCurrentWidget(map[ew]);
+    {
+        tabWidget->setCurrentWidget(widgets[ce->document()]);
+    }
 }
 
 void MainWindow::closeTab(int n)
 {
-    tabWidget->prepareClose(n);
     QWidget *w = tabWidget->widget(n);
-    map.remove(rmap[w]);
-    rmap.remove(w);
+    widgets.remove(documents[w]);
+    documents.remove(w);
     tabWidget->removeTab(n);
     if(tabWidget->count() == 0)
         tabWidget->addTab(new WorkPanel, "Unnamed");
@@ -175,13 +190,50 @@ void MainWindow::showDocument(Document *d)
         connect(d, SIGNAL(calculation_finished(int)), this, SLOT(calculation_finished(int)));
         connect(d, SIGNAL(doubleClicked(ElementWidget*)), this, SLOT(doubleClicked(ElementWidget*)));
         connect(d, SIGNAL(calculation_started()), this, SLOT(calculation_started()));
+        connect(d, SIGNAL(instrumentChanged()), this, SLOT(instrumentChanged()));
         tabWidget->setCurrentWidget(d->workPanel());
 
         documents[d->workPanel()] = d;
+        d->setInstrument(Document::SELECT);
     }
 }
 
 void MainWindow::calculation_started()
 {
     tabWidget->setEnabled(0);
+}
+
+void MainWindow::toolBarAction(QAction * act)
+{
+    if(act->text() == "and")
+    {
+        documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
+        documents[tabWidget->currentWidget()]->setAddingElement(new AndElement());
+    }
+    else if(act->text() == "send")
+    {
+        documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
+        documents[tabWidget->currentWidget()]->setAddingElement(new SendElement());
+    }
+    else if(act->text() == "rec")
+    {
+        documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
+        documents[tabWidget->currentWidget()]->setAddingElement(new ReceiveElement());
+    }
+    else if(act->text() == "select")
+    {
+        documents[tabWidget->currentWidget()]->setInstrument(Document::SELECT);
+    }
+    else if(act->text() == "auto")
+    {
+        if(act->isChecked())
+            documents[tabWidget->currentWidget()]->auto_calculation = 1;
+        else
+            documents[tabWidget->currentWidget()]->auto_calculation = 0;
+    }
+}
+
+void MainWindow::instrumentChanged()
+{
+    aselect->trigger();
 }

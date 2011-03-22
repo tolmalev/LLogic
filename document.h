@@ -18,6 +18,7 @@ class Document : public QObject
     friend class WorkPanel;
     friend class ComplexElement;
     friend class LibraryElement;
+    friend class MainWindow;
 protected:
     Controller * c;
     ComplexElement *ce;
@@ -46,23 +47,21 @@ protected:
 public:
     explicit Document(int _type=FULL, ComplexElement* el = 0, QObject *parent = 0);
     ~Document();
-    static   Document* fromFile(QString filename);
 
+    static   Document* fromFile(QString filename);
     static   Document* fromXml(QDomElement d_el);
     QDomElement toXml(QDomDocument doc);
     QDomElement elementsToXml(QDomDocument doc);
     QDomElement connectionsToXml(QDomDocument doc);
+    int     saveToFile(QString _filename = "");
 
     bool    parseElements(QDomElement d_el);
     bool    parseConnections(QDomElement d_el);
-
-    int     saveToFile(QString _filename = "");
 
     int     document_type(){return _document_type;}
 
     virtual Document * clone();
 
-    void addElement(Element* e);
     int addConnection(int id1, int id2);
     bool canConnect(int id1, int id2);
     void removePoint(int id);
@@ -72,6 +71,9 @@ public:
     WorkPanel *workPanel();
     QString name(){return _name;}
 
+    void setInstrument(int in);
+    void setAddingElement(Element *el);
+
     void stop_calculation();
 
 signals:
@@ -79,9 +81,11 @@ signals:
     void calculation_finished(int);
     void calculation_started();
     void doubleClicked(ElementWidget*);
+    void instrumentChanged();
 public slots:
     void timeout(Controller*c);
     void needCalculation(Element*);
+    void addElement(Element* e);
 };
 
 #endif // DOCUMENT_H

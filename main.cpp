@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 
     //d->saveToFile("test.txt");
 
-    Document *d2 = Document::fromFile("test.xml");
+    Document *d2 = Document::fromFile("test2.xml");
     w.showDocument(d);
     w.showDocument(d2);
     //w.showDocument(d2->clone());

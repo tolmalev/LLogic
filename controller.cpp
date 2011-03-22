@@ -48,7 +48,11 @@ void Controller::set(int id, int val, bool forse)
 int Controller::new_point(int id)
 {
     if(id == -1)
+    {
         id = n++;
+    }
+    else
+        n = id+1;
     if(value.find(id) != value.end())
         return -1;
     value[id]=0;
@@ -236,13 +240,6 @@ void Controller::timer_timeout()
 
 void Controller::removeFromQueue(Element *e)
 {
-    QQueue<Element*>::iterator it = queue.begin(), it1;
-    while(it != queue.end())
-    {
-        it1 = it;
-        it1++;
-        if(*it == e)
-            queue.erase(it, it1);
-        it = it1;
-    }
+    while(queue.indexOf(e)>=0)
+        queue.removeOne(e);
 }

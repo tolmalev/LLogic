@@ -27,12 +27,11 @@ public:
 
     void showDocument(Document*);
 protected:
-    QWidget    *toolBar;
+    QToolBar    *toolBar;
     TabWidget  *tabWidget;
     QMenuBar    *menuBar;
     QListWidget *listWidget;
-    QMap<ElementWidget*, QWidget*>  map;
-    QMap<QWidget*, ElementWidget*>   rmap;
+    QMap<Document*, QWidget*>       widgets;
     QMap<QWidget*, Document*>       documents;
 
     static MainWindow *wnd;
@@ -49,6 +48,12 @@ protected:
         ORNOT,
     };
 
+    QAction *aand;
+    QAction *aor;
+    QAction *aselect;
+    QAction *asend;
+    QAction *arec;
+    QAction *aautoCalc;
 public slots:
 
     void doubleClicked(ElementWidget *);
@@ -58,6 +63,8 @@ public slots:
     void calculation_finished(int);
     void calculation_started();
     void triggered(QAction*);
+    void toolBarAction(QAction*);
+    void instrumentChanged();
 };
 
 #endif // MAINWINDOW_H

@@ -18,12 +18,10 @@ class TabWidget : public QTabWidget
 public:
     explicit TabWidget(QWidget *parent = 0);
     void setMainWindow(MainWindow *m);
-    void prepareClose(int);
 
 signals:
 
 public slots:
-    void changed(int);
 
 };
 

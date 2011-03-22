@@ -31,6 +31,7 @@ class Element : public QObject
     friend class WorkPanel;
     friend class Document;
     friend class LibraryElement;
+    friend class AddingWidget;
 
     protected:
         int _type;

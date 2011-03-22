@@ -35,6 +35,32 @@ class LiningWidget : public QWidget{
         void paintEvent(QPaintEvent *);
 };
 
+class AddingWidget : public QWidget{
+    Q_OBJECT
+
+    WorkPanel *wp;
+    ElementWidget *tmp;
+    int width, height;
+    bool mouseIn;
+    QPoint pt;
+
+    public:
+        AddingWidget(QWidget *parent, WorkPanel*wp, int wd, int h, Element*e);
+        ~AddingWidget();
+        void paintEvent(QPaintEvent *);
+        void mousePressEvent(QMouseEvent *);
+        void mouseMoveEvent(QMouseEvent *);
+        void mouseReleaseEvent(QMouseEvent *);
+
+        void enterEvent(QEvent *){mouseIn=1;}
+        void leaveEvent(QEvent *){mouseIn=0;update();}
+
+        void keyPressEvent(QKeyEvent *);
+
+    signals:
+        void addElement(Element *e);
+};
+
 class WorkPanel : public QWidget
 {
     Q_OBJECT
@@ -42,6 +68,7 @@ class WorkPanel : public QWidget
     friend class Document;
     friend class MovingWidget;
     friend class LiningWidget;
+    friend class AddingWidget;
     QMap<int, PointWidget*> points;
     QMap<int, PointWidget*> input_points;
     QMap<int, PointWidget*> output_points;
@@ -57,6 +84,7 @@ protected:
 
     QWidget * tmpw;
     QPoint p1, p2;
+    Element *adding;
     PointWidget* pw1, *pw2;
     QSet<ElementWidget*> elementWidgets;
     QSet<ElementWidget*> selected;
@@ -89,6 +117,9 @@ public:
     static QPoint toGrid(QPoint a);
 
     Document *document(){return d;}
+
+    void setAddingElement(Element *e);
+    void stopAdding(int type = 0);
 
 signals:
     void doubleClicked(ElementWidget*);

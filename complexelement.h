@@ -25,6 +25,7 @@ class ComplexElement : public Element
     public:
 
         ComplexElement();
+        ~ComplexElement();
         void        recalc();
         Element*    clone();
         Document* document(){return d;}

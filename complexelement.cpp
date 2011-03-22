@@ -10,6 +10,11 @@ ComplexElement::ComplexElement()
     _type = COMPLEX;
 }
 
+ComplexElement::~ComplexElement()
+{
+    delete d;
+}
+
 void ComplexElement::recalc()
 {
     QPair<int, int> p;

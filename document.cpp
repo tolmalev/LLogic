@@ -16,6 +16,7 @@ Document::Document(int _type, ComplexElement*el, QObject *parent) : QObject(pare
     library = 0;
     _name = "Untiteled.lod";
     fileName = _name;
+    instrument = SELECT;
 
     auto_calculation = 1;
 }
@@ -310,4 +311,17 @@ void Document::calcIfNeed()
 void Document::removePoint(int id)
 {
     c->remove_point(id);
+}
+
+void Document::setInstrument(int in)
+{
+    if(instrument == ADDELEMENT)
+        panel->stopAdding(1);
+    instrument = in;
+}
+
+void Document::setAddingElement(Element *el)
+{
+    if(panel)
+        panel->setAddingElement(el);
 }

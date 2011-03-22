@@ -27,13 +27,14 @@ WorkPanel::WorkPanel(ComplexElement *ce, QWidget *parent) :
     state = NONE;
     setMouseTracking(1);
     panel_type = DOCUMENT;
-    grabKeyboard();
+    //grabKeyboard();
     if(ce != 0)
     {
         panel_type = ELEMENT;
         for(int i = 0; i < ce->in_cnt; i++)
         {
             PointWidget * pw = new PointWidget(this);
+            pw->show();
             pw->installEventFilter(this);
             pw->panel = this;
             pw->move(0, (i+1)*grid_size*2-3);
@@ -42,12 +43,12 @@ WorkPanel::WorkPanel(ComplexElement *ce, QWidget *parent) :
         for(int i = 0; i < ce->out_cnt; i++)
         {
             PointWidget * pw = new PointWidget(this);
+            pw->show();
             pw->installEventFilter(this);
             pw->panel = this;
             pw->move(40*grid_size, (i+1)*grid_size*2-3);
             output_points[i] = pw;
         }
-
     }
     d = 0;
 }
@@ -102,7 +103,24 @@ void WorkPanel::paintEvent(QPaintEvent * ev)
     foreach(ElementWidget *ew, selected)
     {
         QRect rt = ew->geometry();
-        painter.drawRect(rt.x()-1, rt.y()-1, rt.width()+1, rt.height()+1);
+        rt.setTopLeft(rt.topLeft() - QPoint(3, 3));
+        rt.setBottomRight(rt.bottomRight() + QPoint(3, 3));
+        //painter.setPen(Qt::DashLine);
+        //painter.drawRect(rt);
+        QPoint tl = rt.topLeft(), tr = rt.topRight(), bl = rt.bottomLeft(), br = rt.bottomRight();
+        QPoint dx(rt.width()/5, 0);
+        QPoint dy(0, rt.height()/5);
+
+        painter.setPen(QColor(53, 53, 255, 255));
+
+        painter.drawLine(tl, tl + dx);
+        painter.drawLine(tr, tr - dx);
+        painter.drawLine(tl, tl + dy);
+        painter.drawLine(bl, bl - dy);
+        painter.drawLine(bl, bl + dx);
+        painter.drawLine(br, br - dy);
+        painter.drawLine(br, br - dx);
+        painter.drawLine(tr, tr + dy);
     }
 }
 
@@ -115,6 +133,7 @@ void WorkPanel::addElement(Element *e)
         case RECEIVE:   ew = new ReceiveElementWidget(this); break;
         default:        ew = new ElementWidget(this); break;
     }
+    ew->show();
     elementWidgets.insert(ew);
     ew->setElement(e);
     ew->installEventFilter(this);
@@ -123,6 +142,7 @@ void WorkPanel::addElement(Element *e)
     for(int i = 0; i < e->in_cnt; i++)
     {
         PointWidget *pw = new PointWidget(ew);
+        pw->show();
         pw->installEventFilter(this);
         pw->panel = this;
         QPoint p = ew->getPointPos(0, i);
@@ -133,12 +153,16 @@ void WorkPanel::addElement(Element *e)
     for(int i = 0; i < e->out_cnt; i++)
     {
         PointWidget *pw = new PointWidget(ew);
+        pw->show();
         pw->installEventFilter(this);
         QPoint p = ew->getPointPos(1, i);
         pw->move(p.x()-4, p.y()-2);
         points[e->out.at(i)] = pw;
         pw->point = e->out.at(i);
     }
+    if(tmpw)
+        tmpw->raise();
+    update();
 }
 
 void WorkPanel::mouseMoveEvent(QMouseEvent *ev)
@@ -174,27 +198,33 @@ void WorkPanel::mouseMoveEvent(QMouseEvent *ev)
 
 void WorkPanel::mousePressEvent(QMouseEvent *ev)
 {
-    if(ev->button() == Qt::LeftButton)
+    setFocus();
+    qWarning("mouse pressed");
+    if(d->instrument == Document::SELECT)
     {
-        tmpw = new SelectWidget((QWidget*)this);
-        tmpw->setGeometry(ev->x(), ev->y(), 0, 0);
-        p1 = QPoint(ev->pos());
-        tmpw->setAutoFillBackground(0);
-        tmpw->show();
-    }
-    else
-    {
-        if(tmpw)
+        if(ev->button() == Qt::LeftButton)
         {
-            tmpw->deleteLater();
-            tmpw=0;
-            selected.clear();
+            tmpw = new SelectWidget((QWidget*)this);
+            tmpw->setGeometry(ev->x(), ev->y(), 0, 0);
+            p1 = QPoint(ev->pos());
+            tmpw->setAutoFillBackground(0);
+            tmpw->show();
+        }
+        else
+        {
+            if(tmpw)
+            {
+                tmpw->deleteLater();
+                tmpw=0;
+                selected.clear();
+            }
         }
     }
 }
 
 void WorkPanel::mouseReleaseEvent(QMouseEvent *ev)
 {
+    setFocus();
     releaseMouse();
 
     if(tmpw)
@@ -223,6 +253,7 @@ void SelectWidget::paintEvent(QPaintEvent *)
 
 bool WorkPanel::eventFilter(QObject *o, QEvent *e)
 {
+    setFocus();
     if(e->type() == QEvent::MouseButtonPress)
     {
         QMouseEvent *me = (QMouseEvent*)e;
@@ -280,6 +311,15 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                 pw1->setDrawType(1);
                 pw1->update();
             }
+            else
+            {
+                if(pw1)
+                {
+                    pw1->setDrawType(0);
+                    pw1->update();
+                    pw1=0;
+                }
+            }
         }
 
         if(state == LINING)
@@ -314,7 +354,8 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
             {
                 if(pw2)
                 {
-                    pw2->setDrawType(0);
+                    if(pw1 != pw2)
+                        pw2->setDrawType(0);
                     pw2=0;
                 }
             }
@@ -462,4 +503,99 @@ void WorkPanel::keyPressEvent(QKeyEvent * ev)
 
         update();
     }
+}
+
+void WorkPanel::setAddingElement(Element *e)
+{
+    selected.clear();
+    adding = e;
+    tmpw = new AddingWidget(this, this, e->_view.width*grid_size, e->_view.height*grid_size, e);
+    tmpw->setGeometry(0, 0, width(), height());
+    tmpw->show();
+    connect(tmpw, SIGNAL(addElement(Element*)), d, SLOT(addElement(Element*)));
+}
+
+AddingWidget::AddingWidget(QWidget *parent, WorkPanel*wp, int wd, int h, Element*e) : QWidget(parent), wp(wp), width(wd), height(h)
+{
+    setMouseTracking(1);
+    tmp = new ElementWidget();
+    tmp->setElement(e);
+    tmp->updateSize();
+    grabKeyboard();
+    //setFocusPolicy(Qt::ClickFocus);
+}
+
+void AddingWidget::mouseMoveEvent(QMouseEvent *ev)
+{
+    setFocus();
+    if(ev->button() == Qt::NoButton)
+    {
+        pt = ev->pos();
+        update();
+    }
+}
+
+void AddingWidget::mousePressEvent(QMouseEvent *ev)
+{
+    if(ev->button() != Qt::LeftButton)
+    {
+        wp->stopAdding();
+    }
+    else
+    {
+        if(wp->canMoveTo(tmp, wp->toGrid(pt-QPoint(20, 10)) ))
+        {
+            QPoint tm = wp->toGrid(pt - QPoint(20, 10));
+            wp->adding->_view.x = tm.x()/grid_size;
+            wp->adding->_view.y = tm.y()/grid_size;
+            emit addElement(wp->adding);
+            wp->adding = wp->adding->clone();
+        }
+    }
+}
+
+void AddingWidget::mouseReleaseEvent(QMouseEvent *ev)
+{
+
+}
+
+void AddingWidget::paintEvent(QPaintEvent *)
+{
+    if(!mouseIn)
+        return;
+    QPainter p(this);
+    QRect rt = tmp->geometry();
+    rt.moveTopLeft(wp->toGrid(pt - QPoint(20, 10)));
+
+    if(wp->canMoveTo(tmp, rt.topLeft()))
+        p.setBrush(QColor(0, 255, 0, 100));
+    else
+        p.setBrush(QColor(255, 0, 0, 100));
+
+    p.drawRect(rt);
+}
+
+void WorkPanel::stopAdding(int type)
+{
+    tmpw->deleteLater();
+    tmpw=0;
+    if(!type)
+    {
+        d->setInstrument(Document::SELECT);
+        emit d->instrumentChanged();
+    }
+    delete adding;
+    adding = 0;
+}
+
+AddingWidget::~AddingWidget()
+{
+    releaseKeyboard();
+    delete tmp;
+}
+
+void AddingWidget::keyPressEvent(QKeyEvent *ev)
+{
+    if(ev->key() == Qt::Key_Escape)
+        wp->stopAdding();
 }

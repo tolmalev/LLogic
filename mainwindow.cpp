@@ -222,6 +222,11 @@ void MainWindow::toolBarAction(QAction * act)
         documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
         documents[tabWidget->currentWidget()]->setAddingElement(new AndElement());
     }
+    else if(act->text() == "or")
+    {
+        documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
+        documents[tabWidget->currentWidget()]->setAddingElement(new OrElement());
+    }
     else if(act->text() == "send")
     {
         documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);

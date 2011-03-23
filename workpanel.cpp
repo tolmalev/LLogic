@@ -156,7 +156,7 @@ void WorkPanel::addElement(Element *e)
         pw->show();
         pw->installEventFilter(this);
         QPoint p = ew->getPointPos(1, i);
-        pw->move(p.x()-4, p.y()-2);
+        pw->move(p.x()-6, p.y()-2);
         points[e->out.at(i)] = pw;
         pw->point = e->out.at(i);
     }

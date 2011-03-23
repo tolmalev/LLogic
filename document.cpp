@@ -37,6 +37,14 @@ void Document::addElement(Element *e)
     changed();
 }
 
+void Document::addPoint(QPoint pos, int p)
+{
+    p = c->new_point(p);
+    freePoints[p] = pos;
+    if(panel)
+        panel->addPoint(p, pos);
+}
+
 WorkPanel* Document::workPanel()
 {
     if(!panel)
@@ -53,6 +61,11 @@ void Document::createPanel()
     panel->d = this;
     foreach(Element* e, elements)
         panel->addElement(e);
+
+    foreach(int id, freePoints.keys())
+    {
+        panel->addPoint(id, freePoints[id]);
+    }
     connect(panel, SIGNAL(doubleClicked(ElementWidget*)), this, SIGNAL(doubleClicked(ElementWidget*)));
     connect(panel, SIGNAL(needCalculation(Element*)), this, SLOT(needCalculation(Element*)));
 }
@@ -64,6 +77,9 @@ void Document::stop_calculation()
 
 int Document::saveToFile(QString filename)
 {
+    if(filename == "")
+        filename = this->fileName;
+    _name = filename.mid(filename.lastIndexOf("/")+1);
     QFile f(filename);
     if(!f.open(QIODevice::WriteOnly))
         return -1;
@@ -76,6 +92,7 @@ int Document::saveToFile(QString filename)
     }
 
     f.close();
+    _changed=0;
     return 1;
 }
 
@@ -224,6 +241,27 @@ bool Document::parseConnections(QDomElement d_el)
     return 1;
 }
 
+bool Document::parseFreePoints(QDomElement d_el)
+{
+    QDomElement ch_e = d_el.firstChildElement();
+    while(!ch_e.isNull())
+    {
+        if(ch_e.tagName() == "point")
+        {
+            int id = ch_e.attribute("id", "-1").toInt();
+            int x   = ch_e.attribute("x", "-1").toInt();
+            int y   = ch_e.attribute("y", "-1").toInt();
+
+
+            if(id == -1 || x == -1 || y==-1)
+                return 0;
+            addPoint(QPoint(x,y), id);
+        }
+        ch_e = ch_e.nextSiblingElement();
+    }
+    return 1;
+}
+
 Document * Document::fromXml(QDomElement d_el)
 {
     QString type = d_el.attribute("type");
@@ -234,6 +272,7 @@ Document * Document::fromXml(QDomElement d_el)
     QDomElement ch_e = d_el.firstChildElement();
     bool elements_ok = 0;
     bool connections_ok = 0;
+    bool free_points_ok = 1;
 
     while(!ch_e.isNull())
     {
@@ -249,10 +288,14 @@ Document * Document::fromXml(QDomElement d_el)
         {
             d->library = ElementLibrary::fromXml(ch_e);
         }
+        else if(ch_e.tagName() == "free_points")
+        {
+            free_points_ok = d->parseFreePoints(ch_e);
+        }
         ch_e = ch_e.nextSiblingElement();
     }
 
-    if(!elements_ok || !connections_ok)
+    if(!elements_ok || !connections_ok || !free_points_ok)
     {
         delete d;
         return 0;
@@ -297,10 +340,26 @@ QDomElement Document::toXml(QDomDocument doc)
 {
     QDomElement document = doc.createElement("Document");
     document.setAttribute("type", "fullDocument");
-    document.appendChild(library->toXml(doc));
+    if(library)
+        document.appendChild(library->toXml(doc));
     document.appendChild(elementsToXml(doc));
+    document.appendChild(freePointsToXml(doc));
     document.appendChild(connectionsToXml(doc));
     return document;
+}
+
+QDomElement Document::freePointsToXml(QDomDocument doc)
+{
+    QDomElement result = doc.createElement("free_points");
+    foreach(int id, freePoints.keys())
+    {
+        QDomElement pt = doc.createElement("point");
+        pt.setAttribute("id", id);
+        pt.setAttribute("x", freePoints[id].x());
+        pt.setAttribute("y", freePoints[id].y());
+        result.appendChild(pt);
+    }
+    return result;
 }
 
 bool Document::canConnect(int id1, int id2)
@@ -322,9 +381,11 @@ void Document::removePoint(int id)
 
 void Document::setInstrument(int in)
 {
-    if(instrument == ADDELEMENT)
+    if(instrument == ADDELEMENT || instrument == ADDPOINT)
         panel->stopAdding(1);
     instrument = in;
+    if(in == ADDPOINT)
+        workPanel()->startAddingPoint();
 }
 
 void Document::setAddingElement(Element *el)
@@ -345,5 +406,13 @@ void Document::moveElement(Element *e, QPoint pos)
         e->_view.x = pos.x();
         e->_view.y = pos.y();
         changed();
+    }
+}
+
+void Document::moveFreePoint(int p, QPoint pos)
+{
+    if(freePoints.find(p) != freePoints.end())
+    {
+        freePoints[p] = pos;
     }
 }

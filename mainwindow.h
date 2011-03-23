@@ -48,14 +48,21 @@ protected:
         ORNOT,
     };
 
+    int untitledN;
+
     QAction *aand;
     QAction *aor;
+    QAction *axor;
+    QAction *aornot;
+    QAction *aandnot;
     QAction *aselect;
     QAction *asend;
+    QAction *apoint;
     QAction *arec;
     QAction *aautoCalc;
-public slots:
 
+    void newDocument();
+public slots:
     void doubleClicked(ElementWidget *);
     void closeTab(int);
     void closeCurrentTab();

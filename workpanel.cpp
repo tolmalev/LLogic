@@ -76,8 +76,8 @@ void WorkPanel::paintEvent(QPaintEvent * ev)
         {
             if(k < b)
             {
-                QPoint p1 = points[k]->mapTo(this, QPoint(3, 3));
-                QPoint p2 = points[b]->mapTo(this, QPoint(3, 3));
+                QPoint p1 = toGrid(points[k]->mapTo(this, QPoint(3, 3)));
+                QPoint p2 = toGrid(points[b]->mapTo(this, QPoint(3, 3)));
                 painter.drawLine(p1, p2);
             }
         }
@@ -87,14 +87,14 @@ void WorkPanel::paintEvent(QPaintEvent * ev)
         QPair<int, int> p;
         foreach(p, ce->in_connections)
         {
-            QPoint p1 = input_points[p.first]->mapTo(this, QPoint(3,3));
-            QPoint p2 = points[p.second]->mapTo(this, QPoint(3,3));
+            QPoint p1 = input_points[p.first]->mapTo(this, QPoint(2,2));
+            QPoint p2 = points[p.second]->mapTo(this, QPoint(2,2));
             painter.drawLine(p1, p2);
         }
         foreach(p, ce->out_connections)
         {
-            QPoint p1 = points[p.first]->mapTo(this, QPoint(3,3));
-            QPoint p2 = output_points[p.second]->mapTo(this, QPoint(3,3));
+            QPoint p1 = points[p.first]->mapTo(this, QPoint(2,2));
+            QPoint p2 = output_points[p.second]->mapTo(this, QPoint(2,2));
             painter.drawLine(p1, p2);
         }
 
@@ -103,6 +103,28 @@ void WorkPanel::paintEvent(QPaintEvent * ev)
     foreach(ElementWidget *ew, selected)
     {
         QRect rt = ew->geometry();
+        rt.setTopLeft(rt.topLeft() - QPoint(3, 3));
+        rt.setBottomRight(rt.bottomRight() + QPoint(3, 3));
+        //painter.setPen(Qt::DashLine);
+        //painter.drawRect(rt);
+        QPoint tl = rt.topLeft(), tr = rt.topRight(), bl = rt.bottomLeft(), br = rt.bottomRight();
+        QPoint dx(rt.width()/5, 0);
+        QPoint dy(0, rt.height()/5);
+
+        painter.setPen(QColor(53, 53, 255, 255));
+
+        painter.drawLine(tl, tl + dx);
+        painter.drawLine(tr, tr - dx);
+        painter.drawLine(tl, tl + dy);
+        painter.drawLine(bl, bl - dy);
+        painter.drawLine(bl, bl + dx);
+        painter.drawLine(br, br - dy);
+        painter.drawLine(br, br - dx);
+        painter.drawLine(tr, tr + dy);
+    }
+    foreach(PointWidget *pw, selectedFreePoints)
+    {
+        QRect rt = pw->geometry();
         rt.setTopLeft(rt.topLeft() - QPoint(3, 3));
         rt.setBottomRight(rt.bottomRight() + QPoint(3, 3));
         //painter.setPen(Qt::DashLine);
@@ -165,9 +187,25 @@ void WorkPanel::addElement(Element *e)
     update();
 }
 
+void WorkPanel::addPoint(int p, QPoint pos)
+{
+    PointWidget *pw = new PointWidget(this);
+    pw->show();
+    pw->installEventFilter(this);
+    pw->panel = this;
+
+    pw->move(pos.x()*grid_size-2, pos.y()*grid_size-2);
+    points[p] = pw;
+    pw->point = p;
+    freePoints.insert(pw);
+    if(tmpw)
+        tmpw->raise();
+    update();
+}
+
 void WorkPanel::mouseMoveEvent(QMouseEvent *ev)
 {
-    qDebug("workpanel mouse move %d %d", ev->x(), ev->y());
+    //qDebug("workpanel mouse move %d %d", ev->x(), ev->y());
     if(state == NONE)
     {
         if(pw1)
@@ -180,7 +218,7 @@ void WorkPanel::mouseMoveEvent(QMouseEvent *ev)
     QWidget*w = childAt(ev->x(), ev->y());
     if(w)
     {
-        qDebug("%s", w->metaObject()->className());
+        //qDebug("%s", w->metaObject()->className());
     }
     if(tmpw)
     {
@@ -191,7 +229,7 @@ void WorkPanel::mouseMoveEvent(QMouseEvent *ev)
 
         tmpw->setGeometry(minx, miny, maxx-minx, maxy-miny);
 
-        qWarning("%d %d %d %d", minx, miny, maxx, maxy);
+        //qDebug("%d %d %d %d", minx, miny, maxx, maxy);
 
     }
 }
@@ -199,7 +237,7 @@ void WorkPanel::mouseMoveEvent(QMouseEvent *ev)
 void WorkPanel::mousePressEvent(QMouseEvent *ev)
 {
     setFocus();
-    qWarning("mouse pressed");
+    //qDebug("mouse pressed");
     if(d->instrument == Document::SELECT)
     {
         if(ev->button() == Qt::LeftButton)
@@ -217,6 +255,7 @@ void WorkPanel::mousePressEvent(QMouseEvent *ev)
                 tmpw->deleteLater();
                 tmpw=0;
                 selected.clear();
+                selectedFreePoints.clear();
             }
         }
     }
@@ -233,11 +272,19 @@ void WorkPanel::mouseReleaseEvent(QMouseEvent *ev)
         QRect rt = tmpw->geometry();
         tmpw=0;
         if(qApp->keyboardModifiers() != Qt::ControlModifier)
+        {
             selected.clear();
+            selectedFreePoints.clear();
+        }
         foreach(ElementWidget* ew, elementWidgets)
         {
             if(rt.intersect(ew->geometry()) == ew->geometry() || rt.intersect(ew->geometry()) == rt)
                 selected.insert(ew);
+        }
+        foreach(PointWidget* ew, freePoints)
+        {
+            if(rt.intersect(ew->geometry()) == ew->geometry() || rt.intersect(ew->geometry()) == rt)
+                selectedFreePoints.insert(ew);
         }
         update();
     }
@@ -254,7 +301,12 @@ void SelectWidget::paintEvent(QPaintEvent *)
 bool WorkPanel::eventFilter(QObject *o, QEvent *e)
 {
     setFocus();
-    if(e->type() == QEvent::MouseButtonPress)
+    if(e->type() == QEvent::MouseButtonDblClick)
+    {
+        if(o->inherits("PointWidget"))
+            return 1;
+    }
+    else if(e->type() == QEvent::MouseButtonPress)
     {
         QMouseEvent *me = (QMouseEvent*)e;
         if(me->button() == Qt::LeftButton)
@@ -267,7 +319,10 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                     if(selected.find(ew) == selected.end())
                     {
                         if(qApp->keyboardModifiers() != Qt::ControlModifier)
+                        {
                             selected.clear();
+                            selectedFreePoints.clear();
+                        }
                         selected.insert(ew);
                     }
                     p2 = p1 = ew->mapTo(this, me->pos());
@@ -278,13 +333,30 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                 }
                 else if(o->inherits("PointWidget"))
                 {
-                    PointWidget *pw = (PointWidget*)o;
-                    pw1 = (PointWidget*)o;
-                    state = LINING;
-                    tmpw = new LiningWidget(this, this);
-                    tmpw->show();
-                    p2 = p1 = toGrid(pw->mapTo(this, me->pos()));
-                    tmpw->setGeometry(geometry());
+                    bool move = 0;
+                    if(!selectedFreePoints.empty())
+                    {
+                        PointWidget *pw = (PointWidget*)o;
+                        if(selectedFreePoints.find(pw) != selectedFreePoints.end())
+                        {
+                            p2 = p1 = pw->mapTo(this, me->pos());
+                            tmpw = new MovingWidget(this, this);
+                            tmpw->show();
+                            tmpw->setGeometry(geometry());
+                            state = MOVING;
+                            move=1;
+                        }
+                    }
+                    if(!move)
+                    {
+                        PointWidget *pw = (PointWidget*)o;
+                        pw1 = (PointWidget*)o;
+                        state = LINING;
+                        tmpw = new LiningWidget(this, this);
+                        tmpw->show();
+                        p2 = p1 = toGrid(pw->mapTo(this, me->pos()));
+                        tmpw->setGeometry(geometry());
+                    }
                 }
             }
         }
@@ -324,7 +396,7 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
 
         if(state == LINING)
         {
-            qWarning("lining %d %d", p2.x(), p2.y());
+            //qDebug("lining %d %d", p2.x(), p2.y());
             PointWidget *pw = 0;
             foreach(PointWidget*p, points)
             {
@@ -332,7 +404,7 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                 rt.setTopLeft( p->mapTo(this, QPoint(0, 0)) );
                 rt.setWidth(p->geometry().width());
                 rt.setHeight(p->geometry().height());
-                qWarning("%d %d %d %d", rt.left(), rt.top(), rt.right(), rt.bottom());
+                //qDebug("%d %d %d %d", rt.left(), rt.top(), rt.right(), rt.bottom());
                 if(rt.contains(p2))
                 {
                     pw = p;
@@ -342,7 +414,7 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
 
             if(pw)
             {
-                qWarning("pwpwwp");
+                //qDebug("pwpwwp");
                 pw2 = pw;
                 if(d->canConnect(pw1->point, pw2->point))
                 {
@@ -368,9 +440,9 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
         QMouseEvent *me = (QMouseEvent*)e;
         if(state == MOVING)
         {
-            if(o->inherits("ElementWidget"))
+            if(o->inherits("QWidget"))
             {
-                ElementWidget *ew = (ElementWidget*)o;
+                QWidget *ew = (QWidget*)o;
                 p2 = ew->mapTo(this, me->pos());
                 bool can = 1;
                 foreach(ElementWidget *ew, selected)
@@ -381,14 +453,30 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                         break;
                     }
                 }
+                foreach(PointWidget *ew, selectedFreePoints)
+                {
+                    if(!canMoveTo(ew, toGrid(ew->pos()+p2-p1)))
+                    {
+                        can = 0;
+                        break;
+                    }
+                }
 
                 if(can)
+                {
                     foreach(ElementWidget *ew, selected)
                     {
                         ew->move(toGrid(ew->pos() + p2 - p1));
                         QPoint pos(ew->geometry().x()/grid_size, ew->geometry().y()/grid_size);
                         d->moveElement(ew->e, pos);
                     }
+                    foreach(PointWidget *pw, selectedFreePoints)
+                    {
+                        pw->move(toGrid(pw->pos() + p2 - p1) - QPoint(2,2));
+                        QPoint pos(pw->geometry().x()/grid_size, pw->geometry().y()/grid_size);
+                        d->moveFreePoint(pw->point, pos);
+                    }
+                }
             }
             update();
             if(tmpw)
@@ -418,7 +506,7 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
         return QWidget::eventFilter(o, e);
 }
 
-bool WorkPanel::canMoveTo(ElementWidget *e, QPoint p)
+bool WorkPanel::canMoveTo(QWidget *e, QPoint p)
 {
     if(p.x() < 0 || p.y() < 0)
         return 0;
@@ -426,14 +514,18 @@ bool WorkPanel::canMoveTo(ElementWidget *e, QPoint p)
     rt.moveTopLeft(p);
     foreach(ElementWidget *ew, elementWidgets)
     {
-        if(e != ew)
+        if(selected.find(ew) == selected.end())
         {
             if(!(rt.intersect(ew->geometry()).isNull()))
-            {
-                qWarning("intersect %d %d %d %d    %d %d %d %d", rt.left(), rt.top(), rt.right(), rt.bottom(),
-                         ew->geometry().left(), ew->geometry().top(), ew->geometry().right(), ew->geometry().bottom());
                 return 0;
-            }
+        }
+    }
+    foreach(PointWidget *ew, freePoints)
+    {
+        if(selectedFreePoints.find(ew) == selectedFreePoints.end())
+        {
+            if(!(rt.intersect(ew->geometry()).isNull()))
+                return 0;
         }
     }
     return 1;
@@ -443,8 +535,9 @@ void MovingWidget::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
     QPoint dp = wp->p2-wp->p1;
-    qWarning("dp = %d %d", dp.x(), dp.y());
-    if(!wp->toGrid(dp).isNull())
+    //qDebug("dp = %d %d", dp.x(), dp.y());
+    if(wp->toGrid(dp).isNull())
+        return;
     foreach(ElementWidget *ew, wp->selected)
     {
         QRect rt;
@@ -457,6 +550,19 @@ void MovingWidget::paintEvent(QPaintEvent *)
         else
             p.fillRect(rt, QColor(255, 0, 0, 100));
         p.drawRect(rt);
+    }
+    foreach(PointWidget *ew, wp->selectedFreePoints)
+    {
+        QRect rt;
+        rt.setTopLeft(wp->toGrid(ew->pos()+QPoint(2,2) + dp)-QPoint(2,2));
+        rt.setWidth(ew->width());
+        rt.setHeight(ew->height());
+
+        if(wp->canMoveTo(ew, rt.topLeft()))
+            p.setBrush(QColor(0, 255, 0, 100));
+        else
+            p.setBrush(QColor(255, 0, 0, 100));
+        p.drawEllipse(rt);
     }
 }
 
@@ -499,8 +605,17 @@ void WorkPanel::keyPressEvent(QKeyEvent * ev)
             ew->deleteLater();
             delete e;
         }
+        foreach(PointWidget *pw, selectedFreePoints)
+        {
+            points.remove(pw->point);
+            d->removePoint(pw->point);
+            freePoints.remove(pw);
+
+            pw->deleteLater();
+        }
 
         selected.clear();
+        selectedFreePoints.clear();
         d->calcIfNeed();
 
         update();
@@ -510,19 +625,29 @@ void WorkPanel::keyPressEvent(QKeyEvent * ev)
 void WorkPanel::setAddingElement(Element *e)
 {
     selected.clear();
+    selectedFreePoints.clear();
     adding = e;
     tmpw = new AddingWidget(this, this, e->_view.width*grid_size, e->_view.height*grid_size, e);
     tmpw->setGeometry(0, 0, width(), height());
     tmpw->show();
     connect(tmpw, SIGNAL(addElement(Element*)), d, SLOT(addElement(Element*)));
+    connect(tmpw, SIGNAL(stopAdding()), this, SLOT(stopAdding()));
 }
 
-AddingWidget::AddingWidget(QWidget *parent, WorkPanel*wp, int wd, int h, Element*e) : QWidget(parent), wp(wp), width(wd), height(h)
+AddingWidget::AddingWidget(QWidget *parent, WorkPanel*wp, int wd, int h, Element*e, bool addp) : QWidget(parent), wp(wp), width(wd), height(h), addingPoint(addp)
 {
     setMouseTracking(1);
-    tmp = new ElementWidget();
-    tmp->setElement(e);
-    tmp->updateSize();
+
+    if(addp)
+    {
+        tmp = new PointWidget();
+    }
+    else
+    {
+        tmp = new ElementWidget();
+        ((ElementWidget*)tmp)->setElement(e);
+        ((ElementWidget*)tmp)->updateSize();
+    }
     grabKeyboard();
     //setFocusPolicy(Qt::ClickFocus);
 }
@@ -530,10 +655,14 @@ AddingWidget::AddingWidget(QWidget *parent, WorkPanel*wp, int wd, int h, Element
 void AddingWidget::mouseMoveEvent(QMouseEvent *ev)
 {
     setFocus();
-    if(ev->button() == Qt::NoButton)
+    if(ev->button() != Qt::LeftButton)
     {
         pt = ev->pos();
         update();
+    }
+    else
+    {
+        pt = ev->pos();
     }
 }
 
@@ -541,9 +670,13 @@ void AddingWidget::mousePressEvent(QMouseEvent *ev)
 {
     if(ev->button() != Qt::LeftButton)
     {
-        wp->stopAdding();
+        emit stopAdding();
     }
-    else
+}
+
+void AddingWidget::mouseReleaseEvent(QMouseEvent *ev)
+{
+    if(!addingPoint)
     {
         if(wp->canMoveTo(tmp, wp->toGrid(pt-QPoint(20, 10)) ))
         {
@@ -554,11 +687,14 @@ void AddingWidget::mousePressEvent(QMouseEvent *ev)
             wp->adding = wp->adding->clone();
         }
     }
-}
-
-void AddingWidget::mouseReleaseEvent(QMouseEvent *ev)
-{
-
+    else
+    {
+        if(wp->canMoveTo(tmp, wp->toGrid(pt)-QPoint(3, 3) ))
+        {
+            QPoint tm = wp->toGrid(pt);
+            emit addPoint(QPoint(tm.x()/grid_size, tm.y()/grid_size));
+        }
+    }
 }
 
 void AddingWidget::paintEvent(QPaintEvent *)
@@ -567,27 +703,38 @@ void AddingWidget::paintEvent(QPaintEvent *)
         return;
     QPainter p(this);
     QRect rt = tmp->geometry();
-    rt.moveTopLeft(wp->toGrid(pt - QPoint(20, 10)));
-
+    if(!addingPoint)
+    {
+        rt.moveTopLeft(wp->toGrid(pt - QPoint(20, 10)));
+    }
+    else
+    {
+        rt.moveTopLeft(wp->toGrid(pt) - QPoint(2,2));
+    }
     if(wp->canMoveTo(tmp, rt.topLeft()))
         p.setBrush(QColor(0, 255, 0, 100));
     else
         p.setBrush(QColor(255, 0, 0, 100));
-
-    p.drawRect(rt);
+    if(!addingPoint)
+        p.drawRect(rt);
+    else
+        p.drawEllipse(rt);
 }
 
 void WorkPanel::stopAdding(int type)
 {
     tmpw->deleteLater();
+    if(d->instrument == Document::ADDELEMENT)
+    {
+        delete adding;
+        adding = 0;
+    }
     tmpw=0;
     if(!type)
     {
         d->setInstrument(Document::SELECT);
         emit d->instrumentChanged();
     }
-    delete adding;
-    adding = 0;
 }
 
 AddingWidget::~AddingWidget()
@@ -599,5 +746,16 @@ AddingWidget::~AddingWidget()
 void AddingWidget::keyPressEvent(QKeyEvent *ev)
 {
     if(ev->key() == Qt::Key_Escape)
-        wp->stopAdding();
+        emit stopAdding();
+}
+
+void WorkPanel::startAddingPoint()
+{
+    selected.clear();
+    selectedFreePoints.clear();
+    tmpw = new AddingWidget(this, this, 0, 0, 0, 1);
+    tmpw->setGeometry(0, 0, width(), height());
+    tmpw->show();
+    connect(tmpw, SIGNAL(addPoint(QPoint)), d, SLOT(addPoint(QPoint)));
+    connect(tmpw, SIGNAL(stopAdding()), this, SLOT(stopAdding()), Qt::QueuedConnection);
 }

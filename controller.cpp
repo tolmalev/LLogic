@@ -52,7 +52,7 @@ int Controller::new_point(int id)
         id = n++;
     }
     else
-        n = id+1;
+        n = std::max(n, id+1);
     if(value.find(id) != value.end())
         return -1;
     value[id]=0;
@@ -63,14 +63,18 @@ int Controller::new_point(int id)
 
 void Controller::remove_point(int id)
 {
-    if(in_e_connected[id])
-        set(id, 0);
-    value.remove(id);
-
+    bool h = has_in_e_connected(id);
     foreach(int i, *connections[id])
     {
         connections[i]->removeOne(id);
+        if(h)
+            if(!has_in_e_connected(i))
+                set(i, 0);
     }
+
+    value.remove(id);
+
+
 
     delete connections[id];
     connections.remove(id);
@@ -103,7 +107,7 @@ void Controller::calculate(bool wait)
 }
 
 
-bool Controller::has_in_e_connected(int i, QMap<int, bool> *mp=0)
+bool Controller::has_in_e_connected(int i, QMap<int, bool> *mp)
 {
     bool created = 0;
     bool has = 0;
@@ -195,17 +199,17 @@ void Controller::stop_calculation()
 {
     thread->terminate();
     thread->wait();
-    qWarning("controller: calculation terminated");
+    //qDebug("controller: calculation terminated");
     queue.clear();
     foreach(int id, value.keys())
     {
-        qWarning("%d", id);
+        //qDebug("%d", id);
         set(id, value[id], 1);
         Element*e =e_connected[id];
         if(e)
         {
             queue.push_back(e);
-            qWarning("add %d", e->type());
+            //qDebug("add %d", e->type());
         }
     }
 }
@@ -222,7 +226,7 @@ void Controller::CalcThread::run()
 
 void Controller::calc_finished()
 {
-    qWarning("controller: calculation finished");
+    //qDebug("controller: calculation finished");
     timer.stop();
     calculating=1;
     emit calculation_finished(0);

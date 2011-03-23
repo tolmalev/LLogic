@@ -125,7 +125,7 @@ void SendElementWidget::paintEvent(QPaintEvent *event)
 void SendElementWidget::mouseDoubleClickEvent(QMouseEvent *)
 {
     ((SendElement*)e)->val ^= 1;
-    qWarning("%d", ((SendElement*)e)->val);
+    //qDebug("%d", ((SendElement*)e)->val);
     emit needCalculation(e);
     update();
 }

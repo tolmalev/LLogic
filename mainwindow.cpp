@@ -19,24 +19,59 @@ MainWindow* MainWindow::wnd = 0;
 
 void MainWindow::triggered(QAction *act)
 {
-    qWarning("se");
+    //qDebug("se");
+    Document *d=documents[tabWidget->currentWidget()];
     if(act->text() == "Open")
     {
         QString fileName = QFileDialog::getOpenFileName(this, "Open File",
                                                         "",
                                                         "Logic files (*.lod)");
         if(fileName != "")
+        {
+            foreach(Document *d, documents)
+            {
+                if(d->fileName == fileName)
+                {
+                    tabWidget->setCurrentWidget(widgets[d]);
+                    return;
+                }
+            }
+
             showDocument(Document::fromFile(fileName));
+        }
     }
     else if(act->text() == "Save As")
     {
         QString fileName = QFileDialog::getSaveFileName(this, "Save file", "", "Locic files (*.lod)");
         if(fileName != "")
-            documents[tabWidget->currentWidget()]->saveToFile(fileName);
+        {
+            d->saveToFile(fileName);
+            int ind = tabWidget->indexOf(widgets[d]);
+            tabWidget->setTabText(ind, d->name());
+        }
     }
     else if(act->text() == "Save")
+    {        
+        if(d->fileName != "")
+        {
+            d->saveToFile();
+            int ind = tabWidget->indexOf(widgets[d]);
+            tabWidget->setTabText(ind, d->name());
+        }
+        else
+        {
+            QString fileName = QFileDialog::getSaveFileName(this, "Save file", "", "Locic files (*.lod)");
+            if(fileName != "")
+            {
+                d->saveToFile(fileName);
+                int ind = tabWidget->indexOf(widgets[d]);
+                tabWidget->setTabText(ind, d->name());
+            }
+        }
+    }
+    else if(act->text() == "New")
     {
-        documents[tabWidget->currentWidget()]->saveToFile();
+        newDocument();
     }
 }
 
@@ -44,6 +79,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent)
 {
     wnd = this;
+    untitledN = 0;
     calculating_message = 0;
     setGeometry(100, 100, 800, 500);
 
@@ -59,12 +95,16 @@ MainWindow::MainWindow(QWidget *parent) :
     leftWidget->setLayout(vb);
 
     toolBar     = new QToolBar();
-    aand        = new QAction("and", toolBar);
-    asend       = new QAction("send", toolBar);
-    arec        = new QAction("rec", toolBar);
-    aor         = new QAction("or", toolBar);
+    aand        = new QAction("and",    toolBar);
+    asend       = new QAction("send",   toolBar);
+    arec        = new QAction("rec",    toolBar);
+    aor         = new QAction("or",     toolBar);
+    axor        = new QAction("xor",    toolBar);
+    aornot      = new QAction("or-not", toolBar);
+    aandnot     = new QAction("and-not",toolBar);
+    apoint      = new QAction("point",toolBar);
     aselect     = new QAction("select", toolBar);
-    aautoCalc   = new QAction("auto", toolBar);
+    aautoCalc   = new QAction("auto",   toolBar);
 
     QActionGroup *ag = new QActionGroup(toolBar);
 
@@ -72,16 +112,24 @@ MainWindow::MainWindow(QWidget *parent) :
     arec->setCheckable(1);
     asend->setCheckable(1);
     aor->setCheckable(1);
+    axor->setCheckable(1);
+    aornot->setCheckable(1);
+    aandnot->setCheckable(1);
     aselect->setCheckable(1);
     aautoCalc->setCheckable(1);
+    apoint->setCheckable(1);
 
     aselect->setChecked(1);
     aautoCalc->setChecked(1);
 
     ag->addAction(aand);
     ag->addAction(aor);
+    ag->addAction(axor);
+    ag->addAction(aornot);
+    ag->addAction(aandnot);
     ag->addAction(asend);
     ag->addAction(arec);
+    ag->addAction(apoint);
     ag->addAction(aselect);
 
     toolBar->addActions(ag->actions());
@@ -100,12 +148,24 @@ MainWindow::MainWindow(QWidget *parent) :
     QMenu *file = menuBar->addMenu("File");
     QAction *op = new QAction("Open", this);
     op->setShortcut(QKeySequence::Open);
+    QAction *save = new QAction("Save", this);
+    save->setShortcut(QKeySequence::Save);
+    QAction *saveas = new QAction("Save As", this);
+    saveas->setShortcut(QKeySequence("Ctrl+Shift+S"));
+    QAction *newdoc = new QAction("New", this);
+    newdoc->setShortcut(QKeySequence::New);
+
     file->addAction(op);
     file->addSeparator();
-    file->addAction("Save");
-    file->addAction("Save As");
+    file->addAction(save);
+    file->addAction(saveas);
+    file->addAction(newdoc);
 
+    QAction *ctrlf4 = new QAction("Close tab", this);
+    ctrlf4->setShortcut(QKeySequence("Ctrl+F4"));
 
+    addAction(ctrlf4);
+    connect(ctrlf4, SIGNAL(triggered()), this, SLOT(closeCurrentTab()));
 
 
     connect(menuBar, SIGNAL(triggered(QAction*)), this, SLOT(triggered(QAction*)));
@@ -156,16 +216,22 @@ void MainWindow::doubleClicked(ElementWidget * ew)
 
 void MainWindow::closeTab(int n)
 {
+    if(tabWidget->count() == 1)
+    {
+        Document *d = documents[tabWidget->currentWidget()];
+        if(d->fileName == "" && d->_changed == 0)
+            return;
+    }
     QWidget *w = tabWidget->widget(n);
     widgets.remove(documents[w]);
     documents.remove(w);
     tabWidget->removeTab(n);
     if(tabWidget->count() == 0)
-        tabWidget->addTab(new WorkPanel, "Unnamed");
+        newDocument();
 }
 
 void MainWindow::closeCurrentTab()
-{
+{    
     closeTab(tabWidget->currentIndex());
 }
 
@@ -227,6 +293,21 @@ void MainWindow::toolBarAction(QAction * act)
         documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
         documents[tabWidget->currentWidget()]->setAddingElement(new OrElement());
     }
+    else if(act->text() == "xor")
+    {
+        documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
+        documents[tabWidget->currentWidget()]->setAddingElement(new XorElement());
+    }
+    else if(act->text() == "or-not")
+    {
+        documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
+        documents[tabWidget->currentWidget()]->setAddingElement(new OrNotElement());
+    }
+    else if(act->text() == "and-not")
+    {
+        documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
+        documents[tabWidget->currentWidget()]->setAddingElement(new AndNotElement());
+    }
     else if(act->text() == "send")
     {
         documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
@@ -240,6 +321,10 @@ void MainWindow::toolBarAction(QAction * act)
     else if(act->text() == "select")
     {
         documents[tabWidget->currentWidget()]->setInstrument(Document::SELECT);
+    }
+    else if(act->text() == "point")
+    {
+        documents[tabWidget->currentWidget()]->setInstrument(Document::ADDPOINT);
     }
     else if(act->text() == "auto")
     {
@@ -263,4 +348,12 @@ void MainWindow::documentChanged(Document *d)
         int ind = tabWidget->indexOf(w);
         tabWidget->setTabText(ind, d->name() + "*");
     }
+}
+
+void MainWindow::newDocument()
+{
+    Document *d = new Document();
+    d->_name = "Untitled_" + QString::number(untitledN++) + ".lod";
+    d->fileName = "";
+    showDocument(d);
 }

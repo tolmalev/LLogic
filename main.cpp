@@ -38,9 +38,7 @@ int main(int argc, char *argv[])
 
     //d->saveToFile("test.txt");
 
-    Document *d2 = Document::fromFile("test2.xml");
     w.showDocument(d);
-    w.showDocument(d2);
     //w.showDocument(d2->clone());
 
     //d2->saveToFile("test3.xml");
@@ -67,11 +65,11 @@ int main(int argc, char *argv[])
             l++;
             l1++;
         }
-        qWarning(s.toAscii());
-        qWarning("%d", l1);
+        //qDebug(s.toAscii());
+        //qDebug("%d", l1);
     }
 
-    qWarning("lines: %d", l);
+    //qDebug("lines: %d", l);
 
     return 0;
 }

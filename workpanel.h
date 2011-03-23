@@ -39,13 +39,15 @@ class AddingWidget : public QWidget{
     Q_OBJECT
 
     WorkPanel *wp;
-    ElementWidget *tmp;
+    QWidget *tmp;
     int width, height;
     bool mouseIn;
     QPoint pt;
 
+    bool addingPoint;
+
     public:
-        AddingWidget(QWidget *parent, WorkPanel*wp, int wd, int h, Element*e);
+        AddingWidget(QWidget *parent, WorkPanel*wp, int wd, int h, Element*e, bool addp=0);
         ~AddingWidget();
         void paintEvent(QPaintEvent *);
         void mousePressEvent(QMouseEvent *);
@@ -59,6 +61,8 @@ class AddingWidget : public QWidget{
 
     signals:
         void addElement(Element *e);
+        void addPoint(QPoint p);
+        void stopAdding();
 };
 
 class WorkPanel : public QWidget
@@ -85,9 +89,12 @@ protected:
     QWidget * tmpw;
     QPoint p1, p2;
     Element *adding;
-    PointWidget* pw1, *pw2;
-    QSet<ElementWidget*> elementWidgets;
-    QSet<ElementWidget*> selected;
+    PointWidget     * pw1, *pw2;
+
+    QSet<ElementWidget*>    elementWidgets;
+    QSet<ElementWidget*>    selected;
+    QSet<PointWidget*>      freePoints;
+    QSet<PointWidget*>      selectedFreePoints;
 
     int state;
     enum states{
@@ -101,6 +108,7 @@ public:
     void paintEvent(QPaintEvent *);
 
     void addElement(Element* e);
+    void addPoint(int p, QPoint pos);
 
     void mouseMoveEvent(QMouseEvent *);
     void mouseReleaseEvent(QMouseEvent *);
@@ -110,7 +118,7 @@ public:
 
     bool eventFilter(QObject *o, QEvent *e);
 
-    bool canMoveTo(ElementWidget *ew, QPoint p);
+    bool canMoveTo(QWidget *ew, QPoint p);
 
     void contextMenuEvent(QContextMenuEvent *);
 
@@ -119,13 +127,13 @@ public:
     Document *document(){return d;}
 
     void setAddingElement(Element *e);
-    void stopAdding(int type = 0);
+    void startAddingPoint();
 
 signals:
     void doubleClicked(ElementWidget*);
     void needCalculation(Element*);
 public slots:
-
+    void stopAdding(int type = 0);
 };
 
 #endif // WORKPANEL_H

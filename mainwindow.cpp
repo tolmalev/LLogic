@@ -19,6 +19,7 @@ MainWindow* MainWindow::wnd = 0;
 
 void MainWindow::triggered(QAction *act)
 {
+    qWarning("se");
     if(act->text() == "Open")
     {
         QString fileName = QFileDialog::getOpenFileName(this, "Open File",
@@ -57,21 +58,26 @@ MainWindow::MainWindow(QWidget *parent) :
     vb->setMargin(1);
     leftWidget->setLayout(vb);
 
-    toolBar = new QToolBar();
-    aand = new QAction("and", toolBar);
-    asend = new QAction("send", toolBar);
-    arec = new QAction("rec", toolBar);
-    aor = new QAction("or", toolBar);
-    aselect = new QAction("select", toolBar);
-    aautoCalc = new QAction("auto", toolBar);
+    toolBar     = new QToolBar();
+    aand        = new QAction("and", toolBar);
+    asend       = new QAction("send", toolBar);
+    arec        = new QAction("rec", toolBar);
+    aor         = new QAction("or", toolBar);
+    aselect     = new QAction("select", toolBar);
+    aautoCalc   = new QAction("auto", toolBar);
+
     QActionGroup *ag = new QActionGroup(toolBar);
+
     aand->setCheckable(1);
     arec->setCheckable(1);
     asend->setCheckable(1);
     aor->setCheckable(1);
     aselect->setCheckable(1);
-    aselect->setChecked(1);
     aautoCalc->setCheckable(1);
+
+    aselect->setChecked(1);
+    aautoCalc->setChecked(1);
+
     ag->addAction(aand);
     ag->addAction(aor);
     ag->addAction(asend);
@@ -90,13 +96,17 @@ MainWindow::MainWindow(QWidget *parent) :
     //vb->addWidget(toolBar);
 
 
-    menuBar = new QMenuBar();
-    QMenu *file = new QMenu("File");
-    file->addAction("Open");
+    menuBar = QMainWindow::menuBar();
+    QMenu *file = menuBar->addMenu("File");
+    QAction *op = new QAction("Open", this);
+    op->setShortcut(QKeySequence::Open);
+    file->addAction(op);
     file->addSeparator();
     file->addAction("Save");
     file->addAction("Save As");
-    menuBar->addMenu(file);
+
+
+
 
     connect(menuBar, SIGNAL(triggered(QAction*)), this, SLOT(triggered(QAction*)));
 
@@ -191,9 +201,11 @@ void MainWindow::showDocument(Document *d)
         connect(d, SIGNAL(doubleClicked(ElementWidget*)), this, SLOT(doubleClicked(ElementWidget*)));
         connect(d, SIGNAL(calculation_started()), this, SLOT(calculation_started()));
         connect(d, SIGNAL(instrumentChanged()), this, SLOT(instrumentChanged()));
+        connect(d, SIGNAL(documentChanged(Document*)), this, SLOT(documentChanged(Document*)));
         tabWidget->setCurrentWidget(d->workPanel());
 
         documents[d->workPanel()] = d;
+        widgets[d] = d->workPanel();
         d->setInstrument(Document::SELECT);
     }
 }
@@ -236,4 +248,14 @@ void MainWindow::toolBarAction(QAction * act)
 void MainWindow::instrumentChanged()
 {
     aselect->trigger();
+}
+
+void MainWindow::documentChanged(Document *d)
+{
+    if(widgets.find(d) != widgets.end())
+    {
+        QWidget *w = widgets[d];
+        int ind = tabWidget->indexOf(w);
+        tabWidget->setTabText(ind, d->name() + "*");
+    }
 }

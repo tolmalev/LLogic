@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QString>
 #include <QSet>
+#include <QPoint>
 #include <QtXml/QDomElement>
 
 #include "classes.h"
@@ -28,6 +29,7 @@ protected:
     void createPanel();
     QString _name;
     QString fileName;
+    bool _changed;
     bool auto_calculation;
     int _document_type;
 
@@ -43,6 +45,8 @@ protected:
         ADDELEMENT,
         ADDPOINT,
     };
+
+    void changed();
 
 public:
     explicit Document(int _type=FULL, ComplexElement* el = 0, QObject *parent = 0);
@@ -62,11 +66,12 @@ public:
 
     virtual Document * clone();
 
-    int addConnection(int id1, int id2);
-    bool canConnect(int id1, int id2);
-    void removePoint(int id);
+    int     addConnection(int id1, int id2);
+    bool    canConnect(int id1, int id2);
+    void    removePoint(int id);
+    void    moveElement(Element *e, QPoint pos);
 
-    void calcIfNeed();
+    void    calcIfNeed();
 
     WorkPanel *workPanel();
     QString name(){return _name;}
@@ -82,6 +87,7 @@ signals:
     void calculation_started();
     void doubleClicked(ElementWidget*);
     void instrumentChanged();
+    void documentChanged(Document*);
 public slots:
     void timeout(Controller*c);
     void needCalculation(Element*);

@@ -14,6 +14,7 @@ Document::Document(int _type, ComplexElement*el, QObject *parent) : QObject(pare
     connect(c, SIGNAL(calculation_finished(int)), this, SIGNAL(calculation_finished(int)));
     panel = 0;
     library = 0;
+    _changed = 0;
     _name = "Untiteled.lod";
     fileName = _name;
     instrument = SELECT;
@@ -33,6 +34,7 @@ void Document::addElement(Element *e)
     elements.insert(e);
     if(panel != 0)
         panel->addElement(e);
+    changed();
 }
 
 WorkPanel* Document::workPanel()
@@ -90,6 +92,8 @@ Document* Document::fromFile(QString filename)
     }
 
     Document *d = fromXml(doc.documentElement());
+    d->fileName = filename;
+    d->_name = filename.mid(filename.lastIndexOf("/")+1);
     return d;
 }
 
@@ -122,6 +126,7 @@ int Document::addConnection(int id1, int id2)
         c->calculate();
         if(panel)
             panel->update();
+        changed();
     }
     return 0;
 }
@@ -254,6 +259,7 @@ Document * Document::fromXml(QDomElement d_el)
     }
     if(d->library == 0)
         d->library = new ElementLibrary;
+    d->_changed = 0;
     return d;
 }
 
@@ -311,6 +317,7 @@ void Document::calcIfNeed()
 void Document::removePoint(int id)
 {
     c->remove_point(id);
+    changed();
 }
 
 void Document::setInstrument(int in)
@@ -324,4 +331,19 @@ void Document::setAddingElement(Element *el)
 {
     if(panel)
         panel->setAddingElement(el);
+}
+
+void Document::changed()
+{
+    emit documentChanged(this);
+}
+
+void Document::moveElement(Element *e, QPoint pos)
+{
+    if(QPoint(e->view().x, e->view().y) != pos)
+    {
+        e->_view.x = pos.x();
+        e->_view.y = pos.y();
+        changed();
+    }
 }

@@ -65,6 +65,7 @@ public slots:
     void triggered(QAction*);
     void toolBarAction(QAction*);
     void instrumentChanged();
+    void documentChanged(Document *d);
 };
 
 #endif // MAINWINDOW_H

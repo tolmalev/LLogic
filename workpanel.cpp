@@ -386,6 +386,8 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                     foreach(ElementWidget *ew, selected)
                     {
                         ew->move(toGrid(ew->pos() + p2 - p1));
+                        QPoint pos(ew->geometry().x()/grid_size, ew->geometry().y()/grid_size);
+                        d->moveElement(ew->e, pos);
                     }
             }
             update();

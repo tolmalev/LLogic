@@ -105,7 +105,7 @@ Element* NotElement::clone()
 
 Element* SimpleElement(int type)
 {
-    Element*e;
+    Element*e=0;
     switch(type)
     {
         case AND:       e = new AndElement;         break;

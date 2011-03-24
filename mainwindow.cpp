@@ -20,6 +20,13 @@ MainWindow* MainWindow::wnd = 0;
 void MainWindow::triggered(QAction *act)
 {
     //qDebug("se");
+    if(act->text() == "New")
+    {
+        newDocument();
+        return;
+    }
+    if(documents.find(tabWidget->currentWidget()) == documents.end())
+        return;
     Document *d=documents[tabWidget->currentWidget()];
     if(act->text() == "Open")
     {
@@ -68,10 +75,6 @@ void MainWindow::triggered(QAction *act)
                 tabWidget->setTabText(ind, d->name());
             }
         }
-    }
-    else if(act->text() == "New")
-    {
-        newDocument();
     }
 }
 
@@ -205,8 +208,11 @@ void MainWindow::doubleClicked(ElementWidget * ew)
     {
         widgets[ce->document()] = ce->document()->workPanel();
         documents[widgets[ce->document()]] = ce->document();
-        tabWidget->addTab(widgets[ce->document()], "testnew");
+        ce->updateDocumentName();
+        tabWidget->addTab(widgets[ce->document()], ce->document()->name());
         tabWidget->setCurrentWidget(widgets[ce->document()]);
+
+        connect(ce->document(), SIGNAL(doubleClicked(ElementWidget*)), this, SLOT(doubleClicked(ElementWidget*)));
     }
     else
     {
@@ -283,6 +289,8 @@ void MainWindow::calculation_started()
 
 void MainWindow::toolBarAction(QAction * act)
 {
+    if(documents.find(tabWidget->currentWidget()) == documents.end())
+        return;
     if(act->text() == "and")
     {
         documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);

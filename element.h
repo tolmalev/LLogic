@@ -41,6 +41,7 @@ class Element : public QObject
         int in_cnt, out_cnt;
         Controller *c;
         Document *d;
+        QString text;
         struct VisualParams{
             int x, y, width, height;
         } _view;
@@ -48,7 +49,7 @@ class Element : public QObject
         void disconnectControler();
     public:
         Element();
-        Element(Controller*c, int _in_cnt = -1, int _out_cnt = -1, int type = SIMPLE);
+        Element(Controller*c, int _in_cnt = -1, int _out_cnt = -1, int type = SIMPLE, QString text="");
 
         static Element *fromXml(QDomElement, Document*d=0);
         virtual QDomElement toXml(QDomDocument);

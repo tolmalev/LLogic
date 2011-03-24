@@ -48,13 +48,15 @@ public:
         int     new_point(int id=-1);
         void    remove_point(int id);
 
-        int     connect_in_element(int id, Element*el);
+        int     connect_in_element(int id, Element*el, bool force=0);
         void    connect_element(int id, Element* el);
 
-        bool    has_in_e_connected(int id, QMap<int, bool> *mp=0);
+        int     has_in_e_connected(int id, QMap<int, bool> *mp=0);
         bool    connected(int id1, int id2);
         int     add_connection(int id1, int id2);
         bool    canConnect(int id1, int id2);
+
+        void    remove_connection(int id1, int id2);
 
         void    removeFromQueue(Element *e);
 

@@ -74,8 +74,6 @@ class WorkPanel : public QWidget
     friend class LiningWidget;
     friend class AddingWidget;
     QMap<int, PointWidget*> points;
-    QMap<int, PointWidget*> input_points;
-    QMap<int, PointWidget*> output_points;
 protected:
     Document *d;
     ComplexElement *ce;
@@ -85,6 +83,8 @@ protected:
         DOCUMENT,
         ELEMENT,
     };
+
+    QAction*    acomplex;
 
     QWidget * tmpw;
     QPoint p1, p2;
@@ -118,7 +118,7 @@ public:
 
     bool eventFilter(QObject *o, QEvent *e);
 
-    bool canMoveTo(QWidget *ew, QPoint p);
+    bool canMoveTo(QWidget *ew, QPoint p, bool sel=1);
 
     void contextMenuEvent(QContextMenuEvent *);
 
@@ -134,6 +134,7 @@ signals:
     void needCalculation(Element*);
 public slots:
     void stopAdding(int type = 0);
+    void createComplex();
 };
 
 #endif // WORKPANEL_H

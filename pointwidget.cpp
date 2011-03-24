@@ -27,7 +27,7 @@ void PointWidget::paintEvent(QPaintEvent * ev)
         p.setPen(QColor(0, 255, 0, 200));
         p.setBrush(QColor(0, 255, 0, 200));//Qt::transparent);
         p.drawEllipse(0, 0, width()-1, height()-1);
-    }
+    }    
 }
 
 void PointWidget::setDrawType(int dt)

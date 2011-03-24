@@ -6,6 +6,7 @@
 #include "complexelement.h"
 #include "elementlibrary.h"
 #include "simpleelements.h"
+#include "algorithm"
 
 Document::Document(int _type, ComplexElement*el, QObject *parent) : QObject(parent), ce(el),_document_type(_type)
 {
@@ -31,6 +32,7 @@ void Document::addElement(Element *e)
 {
     e->setController(c);
     e->d = this;
+    c->queue.push_back(e);
     elements.insert(e);
     if(panel != 0)
         panel->addElement(e);
@@ -145,7 +147,7 @@ int Document::addConnection(int id1, int id2)
             panel->update();
         changed();
     }
-    return 0;
+    return res;
 }
 
 Document* Document::clone()
@@ -154,6 +156,14 @@ Document* Document::clone()
     d->_name = name();
     if(library)
         d->library = library->clone();
+    if(ce)
+    {
+	QPair<int, int> p;
+	foreach(p, ce->in_connections)
+	    d->c->new_point(p.second);
+	foreach(p, ce->out_connections)
+	    d->c->new_point(p.first);
+    }
     foreach(Element*e, elements)
     {
         Element *el = e->clone();
@@ -416,3 +426,111 @@ void Document::moveFreePoint(int p, QPoint pos)
         freePoints[p] = pos;
     }
 }
+
+bool operator<(QPair<QPoint, int> a, QPair<QPoint, int> b)
+{
+    return (a.first.y() < b.first.y()) || (a.first.y() == b.first.y() && a.first.x() < b.first.x());
+}
+
+void Document::createComplex(QSet<Element *> elements, QList<int> points)
+{
+    QSet<int> pts;
+    QVector<QPair<QPoint, int> > input;
+    QVector<QPair<QPoint, int> > output;
+    int top = 10000, left = 10000;
+    foreach(Element *e, elements)
+    {
+        left = std::min(left, e->view().x);
+        top = std::min(top, e->view().y);
+        foreach(int i, e->in)
+            pts.insert(i);
+        foreach(int i, e->out)
+            pts.insert(i);
+    }
+    foreach(int i, points)
+        pts.insert(i);    
+
+    foreach(int i, points)
+    {
+        int id = c->has_in_e_connected(i);
+        if(pts.find(id) == pts.end())
+            input.push_back(QPair<QPoint, int> (freePoints[i], i));
+        else
+            output.push_back(QPair<QPoint, int> (freePoints[i], i));
+        freePoints.remove(i);
+    }
+    qSort(input);
+    qSort(output);
+    ComplexElement *ce = new ComplexElement(input.count(), output.count());
+    ce->d->auto_calculation = 0;
+
+    QMap<int, int> input_id_index;
+    QMap<int, int> output_id_index;
+    QPair<QPoint, int> p;
+    foreach(int i, pts)
+        ce->d->c->new_point(i);
+    for(int i = 0; i < input.count(); i++)
+    {
+        input_id_index[input.at(i).second] = i;
+        ce->in.push_back(input.at(i).second);
+
+        ce->in_connections.push_back(QPair<int, int>(i, input.at(i).second));
+        ce->d->c->connect_in_element(input.at(i).second, ce);
+        c->connect_element(input.at(i).second, ce);
+    }
+
+    for(int i = 0; i < output.count(); i++)
+    {
+        output_id_index[output.at(i).second] = i;
+        ce->out.push_back(output.at(i).second);
+
+        ce->out_connections.push_back(QPair<int, int>(output.at(i).second, i));
+        c->connect_in_element(output.at(i).second, ce, 1);
+    }
+
+
+    foreach(int i, pts)
+    {
+        foreach(int id, *c->connections[i])
+        {
+            if(ce->d->addConnection(i, id) == 0)
+                c->remove_connection(i, id);
+        }
+    }
+
+    foreach(Element *e, elements)
+    {
+        e->_view.x -= left-5;
+	e->_view.y -= top-1;
+        foreach(int i, e->in)
+        {
+            ce->d->c->connect_element(i, e);
+            c->remove_point(i);
+        }
+        foreach(int i, e->out)
+        {
+            ce->d->c->connect_in_element(i, e);
+            c->remove_point(i);
+        }
+        e->c = ce->d->c;
+    }
+    foreach(Element *e, elements)
+    {
+        c->removeFromQueue(e);
+        ce->d->elements.insert(e);
+        this->elements.remove(e);
+    }
+
+    ce->_view.x = left;
+    ce->_view.y = top;
+
+    ((Element*)ce)->d = this;
+    ((Element*)ce)->c = c;
+    c->queue.push_back(ce);
+    this->elements.insert(ce);
+    if(panel != 0)
+        panel->addElement(ce);
+    changed();
+    ce->d->auto_calculation = 1;
+}
+

@@ -1,5 +1,6 @@
 #include <QtGui/QApplication>
 #include <QDir>
+#include <QTextCodec>
 #include <QFile>
 
 #include "mainwindow.h"
@@ -12,37 +13,12 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+     QTextCodec::setCodecForCStrings(QTextCodec::codecForName("unf-8"));
     MainWindow w;
     w.show();
 
+    w.showDocument(Document::fromFile("test.lod"));
 
-
-   Document *d = new Document();
-    d->addElement(new SendElement);
-    d->addElement(new SendElement);
-    d->addElement(new OrNotElement);
-    d->addElement(new OrNotElement);
-    d->addElement(new ReceiveElement);
-    d->addElement(new ReceiveElement);
-    d->addElement(new ReceiveElement);
-
-    d->addConnection(0, 2);
-    d->addConnection(1, 6);
-
-    d->addConnection(4, 5);
-    d->addConnection(3, 7);
-
-    d->addConnection(4, 8);
-    d->addConnection(7, 9);
-    //w.showDocument(d);
-
-    //d->saveToFile("test.txt");
-
-    w.showDocument(d);
-    //w.showDocument(d2->clone());
-
-    //d2->saveToFile("test3.xml");
-    //w.showDocument(Document::fromFile("test3.xml"));
 
     app.exec();
 
@@ -53,6 +29,7 @@ int main(int argc, char *argv[])
     char st[10000];
     int l = 0;
     int l1 = 0;
+    int n = 0;
     foreach(QString s, dir.entryList(QStringList() << "*.cpp" << "*.h", QDir::Files))
     {
         if(s == "main.cpp")
@@ -67,9 +44,10 @@ int main(int argc, char *argv[])
         }
         //qDebug(s.toAscii());
         //qDebug("%d", l1);
+        n++;
     }
 
-    //qDebug("lines: %d", l);
+    qDebug("%d lines in %d files", l, n);
 
     return 0;
 }

@@ -12,9 +12,10 @@ Element::Element()
     _type = SIMPLE;
 }
 
-Element::Element(Controller* _c, int _in_cnt, int _out_cnt, int __type)
+Element::Element(Controller* _c, int _in_cnt, int _out_cnt, int __type, QString _text)
 {
     c=0;
+    text = _text;
     in_cnt = _in_cnt;
     out_cnt = _out_cnt;
     in.resize(in_cnt);
@@ -238,5 +239,4 @@ QDomElement Element::toXml(QDomDocument doc)
     result.appendChild(outputPointsToXml(doc));
 
     return result;
-
 }

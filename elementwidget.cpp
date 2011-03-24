@@ -4,6 +4,7 @@
 #include "element.h"
 #include "simpleelements.h"
 #include <QPainter>
+#include <QGraphicsTextItem>
 
 ElementWidget::ElementWidget(QWidget *parent) :
     QWidget(parent)
@@ -28,6 +29,18 @@ void ElementWidget::setElement(Element *_e)
 {
     e = _e;
     updateSize();
+    QString toolT;
+    switch(e->type())
+    {
+	case AND:	toolT=QString::fromAscii("And"); break;
+	case NOT:	toolT=QString::fromAscii("Not"); break;
+	case OR:	toolT=QString::fromAscii("Or"); break;
+	case ANDNOT:    toolT=QString::fromAscii("And-Not"); break;
+	case ORNOT:	toolT=QString::fromAscii("Or-Not"); break;
+	case XOR:	toolT=QString::fromAscii("Xor"); break;
+	case COMPLEX:	toolT=QString::fromAscii("Complex Element"); break;
+    }
+    setToolTip(toolT);
 }
 
 void ElementWidget::paintEvent(QPaintEvent *event)
@@ -51,6 +64,9 @@ void ElementWidget::paintEvent(QPaintEvent *event)
         int y = (i+1)*grid_size;
         painter.drawLine(w-1-grid_size, y, w-1, y);
     }
+
+    painter.setFont(QFont("Arial", 11));
+    painter.drawText(13, 17, e->text);
 }
 
 

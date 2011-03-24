@@ -2,12 +2,18 @@
 #include "controller.h"
 #include "elementlibrary.h"
 
-ComplexElement::ComplexElement()
+ComplexElement::ComplexElement(int _in_cnt, int _out_cnt )
 {
     d = new Document(Document::ELEMENT, this);
     d->library = 0;
+    in_cnt = _in_cnt;
+    out_cnt = _out_cnt;
 
     _type = COMPLEX;
+
+    _view.height = std::max(in_cnt, out_cnt) + 1;
+    _view.width  = std::max(3, _view.height*2/3);
+    _view.x = _view.y = 0;
 }
 
 ComplexElement::~ComplexElement()
@@ -58,6 +64,7 @@ bool ComplexElement::parseInputConnections(QDomElement d_el)
             if(to == -1 || from == -1)
                 return 0;
             in_connections.push_back(QPair<int, int>(from, to));
+            d->c->new_point(to);
         }
         ch_e = ch_e.nextSiblingElement();
     }
@@ -77,6 +84,7 @@ bool ComplexElement::parseOutputConnections(QDomElement d_el)
             if(to == -1 || from == -1)
                 return 0;
             out_connections.push_back(QPair<int, int>(from, to));
+            d->c->new_point(from);
         }
         ch_e = ch_e.nextSiblingElement();
     }
@@ -201,4 +209,10 @@ QDomElement ComplexElement::toXml(QDomDocument doc)
     result.appendChild(d->connectionsToXml(doc));
 
     return result;
+}
+
+void ComplexElement::updateDocumentName()
+{
+    QString name = Element::d->name() + "/complex";
+    d->_name = name;
 }

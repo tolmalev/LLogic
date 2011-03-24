@@ -38,7 +38,8 @@ WorkPanel::WorkPanel(ComplexElement *ce, QWidget *parent) :
             pw->installEventFilter(this);
             pw->panel = this;
             pw->move(0, (i+1)*grid_size*2-3);
-            input_points[i] = pw;
+            pw->point = ce->in_connections.at(i).second;
+            points[ce->in_connections.at(i).second] = pw;
         }
         for(int i = 0; i < ce->out_cnt; i++)
         {
@@ -47,10 +48,15 @@ WorkPanel::WorkPanel(ComplexElement *ce, QWidget *parent) :
             pw->installEventFilter(this);
             pw->panel = this;
             pw->move(40*grid_size, (i+1)*grid_size*2-3);
-            output_points[i] = pw;
+            pw->point = ce->out_connections.at(i).first;
+            points[ce->out_connections.at(i).first] = pw;
         }
     }
     d = 0;
+
+    acomplex = new QAction("Create complex element", this);
+    acomplex->setShortcut(QKeySequence("Ctrl+Shift+C"));
+    connect(acomplex, SIGNAL(triggered()), this, SLOT(createComplex()));
 }
 
 QPoint WorkPanel::toGrid(QPoint a)
@@ -76,28 +82,14 @@ void WorkPanel::paintEvent(QPaintEvent * ev)
         {
             if(k < b)
             {
-                QPoint p1 = toGrid(points[k]->mapTo(this, QPoint(3, 3)));
-                QPoint p2 = toGrid(points[b]->mapTo(this, QPoint(3, 3)));
-                painter.drawLine(p1, p2);
+                if(points.find(k) != points.end() && points.find(b) != points.end())
+                {
+                    QPoint p1 = toGrid(points[k]->mapTo(this, QPoint(3, 3)));
+                    QPoint p2 = toGrid(points[b]->mapTo(this, QPoint(3, 3)));
+                    painter.drawLine(p1, p2);
+                }
             }
         }
-    }
-    if(ce != 0)
-    {
-        QPair<int, int> p;
-        foreach(p, ce->in_connections)
-        {
-            QPoint p1 = input_points[p.first]->mapTo(this, QPoint(2,2));
-            QPoint p2 = points[p.second]->mapTo(this, QPoint(2,2));
-            painter.drawLine(p1, p2);
-        }
-        foreach(p, ce->out_connections)
-        {
-            QPoint p1 = points[p.first]->mapTo(this, QPoint(2,2));
-            QPoint p2 = output_points[p.second]->mapTo(this, QPoint(2,2));
-            painter.drawLine(p1, p2);
-        }
-
     }
 
     foreach(ElementWidget *ew, selected)
@@ -414,7 +406,8 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
 
             if(pw)
             {
-                //qDebug("pwpwwp");
+                if(pw != pw1)
+                    qDebug("pwpwwp");
                 pw2 = pw;
                 if(d->canConnect(pw1->point, pw2->point))
                 {
@@ -445,9 +438,10 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                 QWidget *ew = (QWidget*)o;
                 p2 = ew->mapTo(this, me->pos());
                 bool can = 1;
+		bool shift = qApp->keyboardModifiers() == Qt::ShiftModifier;
                 foreach(ElementWidget *ew, selected)
                 {
-                    if(!canMoveTo(ew, toGrid(ew->pos()+p2-p1)))
+		    if(!canMoveTo(ew, toGrid(ew->pos()+p2-p1), !shift))
                     {
                         can = 0;
                         break;
@@ -455,7 +449,7 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                 }
                 foreach(PointWidget *ew, selectedFreePoints)
                 {
-                    if(!canMoveTo(ew, toGrid(ew->pos()+p2-p1)))
+		    if(!canMoveTo(ew, toGrid(ew->pos()+p2-p1), !shift))
                     {
                         can = 0;
                         break;
@@ -466,15 +460,34 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                 {
                     foreach(ElementWidget *ew, selected)
                     {
-                        ew->move(toGrid(ew->pos() + p2 - p1));
-                        QPoint pos(ew->geometry().x()/grid_size, ew->geometry().y()/grid_size);
-                        d->moveElement(ew->e, pos);
+			if(!shift)
+			{
+			    ew->move(toGrid(ew->pos() + p2 - p1));
+			    QPoint pos(ew->geometry().x()/grid_size, ew->geometry().y()/grid_size);
+			    d->moveElement(ew->e, pos);
+			}
+			else
+			{
+			    Element *e = ew->e->clone();
+			    QPoint pos = toGrid(  ew->geometry().topLeft() + p2 -p1  );
+			    e->_view.x = pos.x()/grid_size;
+			    e->_view.y = pos.y()/grid_size;
+			    d->addElement(e);
+			}
                     }
                     foreach(PointWidget *pw, selectedFreePoints)
                     {
-                        pw->move(toGrid(pw->pos() + p2 - p1) - QPoint(2,2));
-                        QPoint pos(pw->geometry().x()/grid_size, pw->geometry().y()/grid_size);
-                        d->moveFreePoint(pw->point, pos);
+			if(!shift)
+			{
+			    pw->move(toGrid(pw->pos() + p2 - p1) - QPoint(2,2));
+			    QPoint pos(pw->geometry().x()/grid_size, pw->geometry().y()/grid_size);
+			    d->moveFreePoint(pw->point, pos);
+			}
+			else
+			{
+			    QPoint pos(pw->geometry().x()/grid_size, pw->geometry().y()/grid_size);
+			    d->addPoint(pos);
+			}
                     }
                 }
             }
@@ -502,11 +515,11 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
 
         return 1;
     }
-    else
-        return QWidget::eventFilter(o, e);
+
+    return QWidget::eventFilter(o, e);
 }
 
-bool WorkPanel::canMoveTo(QWidget *e, QPoint p)
+bool WorkPanel::canMoveTo(QWidget *e, QPoint p, bool sel)
 {
     if(p.x() < 0 || p.y() < 0)
         return 0;
@@ -514,7 +527,7 @@ bool WorkPanel::canMoveTo(QWidget *e, QPoint p)
     rt.moveTopLeft(p);
     foreach(ElementWidget *ew, elementWidgets)
     {
-        if(selected.find(ew) == selected.end())
+	if(selected.find(ew) == selected.end() || !sel)
         {
             if(!(rt.intersect(ew->geometry()).isNull()))
                 return 0;
@@ -568,9 +581,19 @@ void MovingWidget::paintEvent(QPaintEvent *)
 
 void WorkPanel::contextMenuEvent(QContextMenuEvent *ev)
 {
-    QMenu mn;
-    mn.addAction("saf");
-    mn.exec(ev->globalPos());
+    if(!selected.empty())
+    {
+        QWidget *w = childAt(ev->pos());
+        if(!w)
+            return;
+        if((w->inherits("ElementWidget") && selected.find((ElementWidget*)w) != selected.end()) ||
+           (w->inherits("PointWidget") && selectedFreePoints.find((PointWidget*)w) != selectedFreePoints.end()))
+        {
+            QMenu mn;
+            mn.addAction(acomplex);
+            mn.exec(ev->globalPos());
+        }
+    }
 }
 
 void LiningWidget::paintEvent(QPaintEvent *ev)
@@ -612,6 +635,7 @@ void WorkPanel::keyPressEvent(QKeyEvent * ev)
             freePoints.remove(pw);
 
             pw->deleteLater();
+            d->freePoints.remove(pw->point);
         }
 
         selected.clear();
@@ -637,6 +661,7 @@ void WorkPanel::setAddingElement(Element *e)
 AddingWidget::AddingWidget(QWidget *parent, WorkPanel*wp, int wd, int h, Element*e, bool addp) : QWidget(parent), wp(wp), width(wd), height(h), addingPoint(addp)
 {
     setMouseTracking(1);
+    mouseIn=0;
 
     if(addp)
     {
@@ -758,4 +783,31 @@ void WorkPanel::startAddingPoint()
     tmpw->show();
     connect(tmpw, SIGNAL(addPoint(QPoint)), d, SLOT(addPoint(QPoint)));
     connect(tmpw, SIGNAL(stopAdding()), this, SLOT(stopAdding()), Qt::QueuedConnection);
+}
+
+void WorkPanel::createComplex()
+{
+    QSet<Element*> elements;
+    QList<int>      _points;
+    foreach(ElementWidget* ew, selected)
+    {
+        elements.insert(ew->element());
+        foreach(int i, ew->element()->in)
+            points.remove(i);
+        foreach(int i, ew->element()->out)
+            points.remove(i);
+        elementWidgets.remove(ew);
+        ew->deleteLater();
+    }
+    foreach(PointWidget* ew, selectedFreePoints)
+    {
+        _points.push_back(ew->point);
+        freePoints.remove(points[ew->point]);
+        points.remove(ew->point);
+        ew->deleteLater();
+    }
+
+    selected.clear();
+    selectedFreePoints.clear();
+    d->createComplex(elements, _points);
 }

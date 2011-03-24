@@ -89,6 +89,8 @@ public:
 
     void stop_calculation();
 
+    void createComplex(QSet<Element*> elements, QList<int> points);
+
 signals:
     void timeout(Document*);
     void calculation_finished(int);

@@ -1,9 +1,11 @@
 #include "controller.h"
 #include "element.h"
 
+#include <QSet>
+
 Controller::Controller()
 {
-    n = 0;
+    n = 1;
     calculating=0;
     timer.setSingleShot(1);
     timer.setInterval(1000);
@@ -106,25 +108,24 @@ void Controller::calculate(bool wait)
     }
 }
 
-
-bool Controller::has_in_e_connected(int i, QMap<int, bool> *mp)
+int Controller::has_in_e_connected(int i, QMap<int, bool> *mp)
 {
     bool created = 0;
-    bool has = 0;
+    int has = 0;
     if(mp == 0)
     {
         mp = new QMap<int, bool>;
         created = 1;
     }
     if(in_e_connected[i] != 0)
-        has = 1;
+        has = i;
     if(mp->find(i) == mp->end())
     {
          mp->insert(i, 1);
          foreach(int id, *connections[i])
              if(has_in_e_connected(id, mp))
              {
-                has = 1;
+                has = id;
                 break;
              }
     }
@@ -133,9 +134,9 @@ bool Controller::has_in_e_connected(int i, QMap<int, bool> *mp)
     return has;
 }
 
-int Controller::connect_in_element(int id, Element *el)
+int Controller::connect_in_element(int id, Element *el, bool force)
 {
-    if(has_in_e_connected(id))
+    if(has_in_e_connected(id) && !force)
         return -1;
     in_e_connected[id] = el;
     queue.push_back(el);
@@ -246,4 +247,23 @@ void Controller::removeFromQueue(Element *e)
 {
     while(queue.indexOf(e)>=0)
         queue.removeOne(e);
+}
+
+void Controller::remove_connection(int id1, int id2)
+{
+    if(value.find(id1) == value.end() || value.find(id2) == value.end())
+        return;
+    if(id1 == id2)
+    {
+        foreach(int i, *connections[id1])
+        {
+            connections[i]->removeOne(id1);
+        }
+        connections[id1]->clear();
+    }
+    else
+    {
+        connections[id1]->removeOne(id2);
+        connections[id2]->removeOne(id1);
+    }
 }

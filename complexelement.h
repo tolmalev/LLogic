@@ -17,6 +17,7 @@ class ComplexElement : public Element
     friend class ComplexElementDocument;
     friend class WorkPanel;
     friend class ElementLibrary;
+    friend class Document;
 
     protected:
         Document*d;
@@ -24,7 +25,7 @@ class ComplexElement : public Element
         QVector<QPair<int, int> > out_connections;
     public:
 
-        ComplexElement();
+        ComplexElement(int _in_cnt = -1, int _out_cnt = -1);
         ~ComplexElement();
         void        recalc();
         Element*    clone();
@@ -37,6 +38,8 @@ class ComplexElement : public Element
 
         bool parseInputConnections(QDomElement d_el);
         bool parseOutputConnections(QDomElement d_el);
+
+        void updateDocumentName();
 };
 
 #endif // COMPLEXELEMENT_H

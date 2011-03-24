@@ -30,7 +30,7 @@ class ReceiveElement : public Element
 class XorElement : public Element
 {
     public:
-        XorElement() : Element(0, 2, 1, XOR) {};
+        XorElement() : Element(0, 2, 1, XOR, "Xor") {};
         virtual void recalc();
         virtual Element*clone();
 };
@@ -38,7 +38,7 @@ class XorElement : public Element
 class AndElement : public Element
 {
     public:
-        AndElement() : Element(0, 2, 1, AND) {};
+        AndElement() : Element(0, 2, 1, AND, "And") {};
         virtual void recalc();
         virtual Element*clone();
 };
@@ -46,7 +46,7 @@ class AndElement : public Element
 class AndNotElement : public Element
 {
     public:
-        AndNotElement() : Element(0, 2, 1, ANDNOT) {};
+        AndNotElement() : Element(0, 2, 1, ANDNOT, "!And") {};
         virtual void recalc();
         virtual Element*clone();
 };
@@ -54,7 +54,7 @@ class AndNotElement : public Element
 class OrElement : public Element
 {
     public:
-        OrElement() : Element(0, 2, 1, OR) {};
+        OrElement() : Element(0, 2, 1, OR, "Or") {};
         virtual void recalc();
         virtual Element*clone();
 };
@@ -62,7 +62,7 @@ class OrElement : public Element
 class OrNotElement : public Element
 {
     public:
-        OrNotElement() : Element(0, 2, 1, ORNOT) {};
+        OrNotElement() : Element(0, 2, 1, ORNOT, "!Or") {};
         virtual void recalc();
         virtual Element*clone();
 };
@@ -70,7 +70,7 @@ class OrNotElement : public Element
 class NotElement : public Element
 {
     public:
-        NotElement() : Element(0, 1, 1, NOT) {};
+        NotElement() : Element(0, 1, 1, NOT, "Not") {};
         virtual void recalc();
         virtual Element*clone();
 };

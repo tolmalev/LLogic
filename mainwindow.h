@@ -65,6 +65,9 @@ protected:
 
     QAction *adeleteLibrary;
 
+
+    void closeEvent(QCloseEvent *);
+
 public slots:
     void doubleClicked(ElementWidget *);
     void closeTab(int);

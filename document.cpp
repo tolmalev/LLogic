@@ -37,6 +37,8 @@ void Document::addElement(Element *e)
     if(panel != 0)
         panel->addElement(e);
     changed();
+    if(e->type() == COMPLEX)
+	connect(((ComplexElement*)e)->d, SIGNAL(documentChanged(Document*)), this, SLOT(changed()));
 }
 
 void Document::addPoint(QPoint pos, int p)
@@ -82,7 +84,8 @@ int Document::saveToFile(QString filename)
 {
     if(filename == "")
         filename = this->fileName;
-    _name = filename.mid(filename.lastIndexOf("/")+1);
+    int ind = std::max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
+    _name = filename.mid(ind+1);
     QFile f(filename);
     if(!f.open(QIODevice::WriteOnly))
         return -1;
@@ -95,8 +98,17 @@ int Document::saveToFile(QString filename)
     }
 
     f.close();
-    _changed=0;
+    setUnchanged();
+
     return 1;
+}
+
+void Document::setUnchanged()
+{
+    _changed = 0;
+    foreach(Element*e, elements)
+	if(e->type() == COMPLEX)
+	    ((ComplexElement*)e)->d->setUnchanged();
 }
 
 Document* Document::fromFile(QString filename)
@@ -227,6 +239,8 @@ bool Document::parseElements(QDomElement d_el)
             }
 
             elements.insert(e);
+	    if(e->type() == COMPLEX)
+		connect(((ComplexElement*)e)->d, SIGNAL(documentChanged(Document*)), this, SLOT(changed()));
         }
         ch_e = ch_e.nextSiblingElement();
     }
@@ -535,6 +549,7 @@ void Document::createComplex(QSet<Element *> elements, QList<int> points)
     this->elements.insert(ce);
     if(panel != 0)
         panel->addElement(ce);
+    connect(ce->d, SIGNAL(documentChanged(Document*)), this, SLOT(changed()));
     changed();
     ce->d->auto_calculation = 1;
 }
@@ -594,4 +609,11 @@ void Document::removeConnection(int id1, int id2)
 {
     c->remove_connection(id1, id2);
     changed();
+}
+
+Document* Document::rootDocument()
+{
+    if(!ce)
+	return this;
+    return ((Element*)ce)->d->rootDocument();
 }

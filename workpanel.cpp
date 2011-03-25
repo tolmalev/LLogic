@@ -882,7 +882,6 @@ void WorkPanel::addToLibrary()
 
 void WorkPanel::resizeEvent(QResizeEvent *ev)
 {
-    qDebug() << ev->size();
     if(tmpw)
 	tmpw->setGeometry(0, 0, ev->size().width(), ev->size().height());
 

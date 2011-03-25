@@ -28,7 +28,7 @@ void MainWindow::triggered(QAction *act)
     }
     if(documents.find(tabWidget->currentWidget()) == documents.end())
         return;
-    Document *d=documents[tabWidget->currentWidget()];
+    Document *d=documents[tabWidget->currentWidget()]->rootDocument();
     if(act->text() == "Open")
     {
         QString fileName = QFileDialog::getOpenFileName(this, "Open File",
@@ -195,6 +195,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(listWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(libraryClicked(QListWidgetItem*)));
     connect(listWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(listWidgetMenu(QPoint)));
+
+
 
 
     vb->addWidget(listWidget, 1);
@@ -474,4 +476,19 @@ void MainWindow::removeFromLibrary()
 void MainWindow::tabChanged(int)
 {
     libraryChanged();
+}
+
+void MainWindow::closeEvent(QCloseEvent *ev)
+{
+    bool have = 0;
+    foreach(Document*d, documents)
+    {
+	have |= d->_changed;
+    }
+    if(have)
+    {
+	int res = QMessageBox::question(this, "Close?", "You have unsaved document, exit anyway?", QMessageBox::Cancel, QMessageBox::Close);
+	if(res == QMessageBox::Cancel)
+	    ev->ignore();
+    }
 }

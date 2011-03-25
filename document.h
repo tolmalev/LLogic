@@ -51,6 +51,8 @@ protected:
         ADDPOINT,
     };
 
+private slots:
+
     void changed();
 
 public:
@@ -70,6 +72,7 @@ public:
     bool    parseFreePoints(QDomElement d_el);
 
     int     document_type(){return _document_type;}
+    Document* rootDocument();
 
     virtual Document * clone();
 
@@ -97,6 +100,8 @@ public:
 
     int addLibraryElement(QString name, ComplexElement* e);
     int removeLibraryElement(QString name);
+
+    void setUnchanged();
 
 signals:
     void timeout(Document*);

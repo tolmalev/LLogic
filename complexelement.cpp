@@ -45,6 +45,7 @@ Element* ComplexElement::clone()
     el->out.resize(out_cnt);
     el->in_connections = in_connections;
     el->out_connections = out_connections;
+    el->text = text;
     delete el->d;
     el->d = d->clone();
     el->d->ce = el;
@@ -103,6 +104,7 @@ ComplexElement * ComplexElement::fromXml(QDomElement d_el)
 
     int in_c = d_el.attribute("in_cnt", "-1").toInt();
     int out_c = d_el.attribute("out_cnt", "-1").toInt();
+
     if(in_c < 0 || out_c < 0)
         return 0;
     el = new ComplexElement;
@@ -110,6 +112,7 @@ ComplexElement * ComplexElement::fromXml(QDomElement d_el)
     el->out_cnt = out_c;
     el->in.resize(in_c);
     el->out.resize(out_c);
+    el->text = d_el.attribute("name", "complex");
 
     QDomElement ch_e = d_el.firstChildElement();
     bool view_ok  = 0;
@@ -203,6 +206,7 @@ QDomElement ComplexElement::toXml(QDomDocument doc)
     QDomElement result = Element::toXml(doc);
     result.setAttribute("in_cnt", in_cnt);
     result.setAttribute("out_cnt", out_cnt);
+    result.setAttribute("name", text);
     result.appendChild(inputConnectionsToXml(doc));
     result.appendChild(outputConnectionsToXml(doc));
     result.appendChild(d->elementsToXml(doc));
@@ -213,6 +217,6 @@ QDomElement ComplexElement::toXml(QDomDocument doc)
 
 void ComplexElement::updateDocumentName()
 {
-    QString name = Element::d->name() + "/complex";
+    QString name = Element::d->name() + "\\" + text;
     d->_name = name;
 }

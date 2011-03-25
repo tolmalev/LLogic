@@ -13,13 +13,20 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
-     QTextCodec::setCodecForCStrings(QTextCodec::codecForName("unf-8"));
+    QTextCodec::setCodecForCStrings(QTextCodec::codecForName("unf-8"));
     MainWindow w;
     w.show();
 
-    w.showDocument(Document::fromFile("test.lod"));
-
-
+    if(argc>1)
+    {
+	Document * d = Document::fromFile(argv[1]);
+	if(d)
+	    w.showDocument(d);
+	else
+	    w.newDocument();
+    }
+    else
+	w.newDocument();
     app.exec();
 
 

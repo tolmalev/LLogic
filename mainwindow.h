@@ -26,6 +26,7 @@ public:
     ~MainWindow();
 
     void showDocument(Document*);
+    void newDocument();
 protected:
     QToolBar    *toolBar;
     TabWidget  *tabWidget;
@@ -53,6 +54,7 @@ protected:
     QAction *aand;
     QAction *aor;
     QAction *axor;
+    QAction *anot;
     QAction *aornot;
     QAction *aandnot;
     QAction *aselect;
@@ -61,7 +63,8 @@ protected:
     QAction *arec;
     QAction *aautoCalc;
 
-    void newDocument();
+    QAction *adeleteLibrary;
+
 public slots:
     void doubleClicked(ElementWidget *);
     void closeTab(int);
@@ -72,7 +75,12 @@ public slots:
     void triggered(QAction*);
     void toolBarAction(QAction*);
     void instrumentChanged();
+    void libraryClicked(QListWidgetItem*);
     void documentChanged(Document *d);
+    void libraryChanged();
+    void listWidgetMenu(QPoint);
+    void removeFromLibrary();
+    void tabChanged(int);
 };
 
 #endif // MAINWINDOW_H

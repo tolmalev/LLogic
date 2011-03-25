@@ -16,7 +16,7 @@ Document::Document(int _type, ComplexElement*el, QObject *parent) : QObject(pare
     panel = 0;
     library = 0;
     _changed = 0;
-    _name = "Untiteled.lod";
+    _name = "";
     fileName = _name;
     instrument = SELECT;
 
@@ -45,6 +45,7 @@ void Document::addPoint(QPoint pos, int p)
     freePoints[p] = pos;
     if(panel)
         panel->addPoint(p, pos);
+    changed();
 }
 
 WorkPanel* Document::workPanel()
@@ -112,7 +113,8 @@ Document* Document::fromFile(QString filename)
 
     Document *d = fromXml(doc.documentElement());
     d->fileName = filename;
-    d->_name = filename.mid(filename.lastIndexOf("/")+1);
+    int ind = std::max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
+    d->_name = filename.mid(ind+1);
     return d;
 }
 
@@ -406,6 +408,7 @@ void Document::setAddingElement(Element *el)
 
 void Document::changed()
 {
+    _changed = 1;
     emit documentChanged(this);
 }
 
@@ -424,6 +427,7 @@ void Document::moveFreePoint(int p, QPoint pos)
     if(freePoints.find(p) != freePoints.end())
     {
         freePoints[p] = pos;
+	changed();
     }
 }
 
@@ -527,6 +531,7 @@ void Document::createComplex(QSet<Element *> elements, QList<int> points)
     ((Element*)ce)->d = this;
     ((Element*)ce)->c = c;
     c->queue.push_back(ce);
+    ce->d->library = new ElementLibrary();
     this->elements.insert(ce);
     if(panel != 0)
         panel->addElement(ce);
@@ -534,3 +539,59 @@ void Document::createComplex(QSet<Element *> elements, QList<int> points)
     ce->d->auto_calculation = 1;
 }
 
+Element* Document::getLibraryElement(QString name)
+{
+    if(!ce)
+    {
+	if(!library)
+	    return 0;
+	return library->getElement(name);
+    }
+    else
+	return ((Element*)ce)->d->getLibraryElement(name);
+}
+
+QList<QString> Document::libraryNames()
+{
+    if(!ce)
+	return library->names();
+    else
+	return ((Element*)ce)->d->libraryNames();
+}
+
+int Document::addLibraryElement(QString name, ComplexElement *e)
+{
+    if(!ce)
+    {
+	int res = library->addElement(name, e);
+	if(res)
+	    return res;
+	emit libraryChanged();
+	changed();
+	return 0;
+    }
+    else
+	return ((Element*)ce)->d->addLibraryElement(name, e);
+}
+
+int Document::removeLibraryElement(QString name)
+{
+    if(!ce)
+    {
+	int res = library->removeElement(name);
+	if(res)
+	    return res;
+	emit libraryChanged();
+	changed();
+	return 0;
+    }
+    else
+	return ((Element*)ce)->d->removeLibraryElement(name);
+
+}
+
+void Document::removeConnection(int id1, int id2)
+{
+    c->remove_connection(id1, id2);
+    changed();
+}

@@ -27,6 +27,7 @@ int ElementLibrary::addElement(QString name, ComplexElement *e)
     if(hasElement(name))
         return -1;
     elements[name] = (ComplexElement*)e->clone();
+    elements[name]->text = name;
     return 0;
 }
 
@@ -161,4 +162,18 @@ ElementLibrary::~ElementLibrary()
         delete elements[name];
     }
     elements.clear();
+}
+
+QList<QString> ElementLibrary::names()
+{
+    return elements.keys();
+}
+
+int ElementLibrary::removeElement(QString name)
+{
+    if(elements.find(name) == elements.end())
+	return -1;
+    delete elements[name];
+    elements.remove(name);
+    return 0;
 }

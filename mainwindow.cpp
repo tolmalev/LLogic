@@ -14,6 +14,7 @@
 #include "workpanel.h"
 #include "complexelement.h"
 #include "simpleelements.h"
+#include "elementlibrary.h"
 
 MainWindow* MainWindow::wnd = 0;
 
@@ -43,8 +44,12 @@ void MainWindow::triggered(QAction *act)
                     return;
                 }
             }
+	    Document *d = Document::fromFile(fileName);
 
-            showDocument(Document::fromFile(fileName));
+	    if(d != 0)
+		showDocument(d);
+	    else
+		QMessageBox::critical(this, "error", "Can't open file " + fileName);
         }
     }
     else if(act->text() == "Save As")
@@ -102,6 +107,7 @@ MainWindow::MainWindow(QWidget *parent) :
     asend       = new QAction("send",   toolBar);
     arec        = new QAction("rec",    toolBar);
     aor         = new QAction("or",     toolBar);
+    anot        = new QAction("not",     toolBar);
     axor        = new QAction("xor",    toolBar);
     aornot      = new QAction("or-not", toolBar);
     aandnot     = new QAction("and-not",toolBar);
@@ -115,6 +121,7 @@ MainWindow::MainWindow(QWidget *parent) :
     arec->setCheckable(1);
     asend->setCheckable(1);
     aor->setCheckable(1);
+    anot->setCheckable(1);
     axor->setCheckable(1);
     aornot->setCheckable(1);
     aandnot->setCheckable(1);
@@ -127,6 +134,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ag->addAction(aand);
     ag->addAction(aor);
+    ag->addAction(anot);
     ag->addAction(axor);
     ag->addAction(aornot);
     ag->addAction(aandnot);
@@ -170,8 +178,10 @@ MainWindow::MainWindow(QWidget *parent) :
     addAction(ctrlf4);
     connect(ctrlf4, SIGNAL(triggered()), this, SLOT(closeCurrentTab()));
 
-
     connect(menuBar, SIGNAL(triggered(QAction*)), this, SLOT(triggered(QAction*)));
+
+    adeleteLibrary = new QAction("Remove this element from the library", this);
+    connect(adeleteLibrary, SIGNAL(triggered()), this, SLOT(removeFromLibrary()));
 
 
 
@@ -181,6 +191,11 @@ MainWindow::MainWindow(QWidget *parent) :
     hb->addWidget(tabWidget);
 
     listWidget = new QListWidget();
+    listWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    connect(listWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(libraryClicked(QListWidgetItem*)));
+    connect(listWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(listWidgetMenu(QPoint)));
+
 
     vb->addWidget(listWidget, 1);
 
@@ -193,6 +208,7 @@ MainWindow::MainWindow(QWidget *parent) :
     //tabWidget->setTabsClosable(1);
 
     connect(tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeTab(int)));
+    connect(tabWidget, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
 }
 
 MainWindow::~MainWindow()
@@ -206,10 +222,13 @@ void MainWindow::doubleClicked(ElementWidget * ew)
     ComplexElement *ce = (ComplexElement*)(ew->element());
     if(widgets.find(ce->document()) == widgets.end())
     {
-        widgets[ce->document()] = ce->document()->workPanel();
+	QScrollArea *sa = new QScrollArea(tabWidget);
+	sa->setWidget(ce->document()->workPanel());
+	sa->setWidgetResizable(1);
+	widgets[ce->document()] = sa;
         documents[widgets[ce->document()]] = ce->document();
         ce->updateDocumentName();
-        tabWidget->addTab(widgets[ce->document()], ce->document()->name());
+	tabWidget->addTab(sa, ce->document()->name());
         tabWidget->setCurrentWidget(widgets[ce->document()]);
 
         connect(ce->document(), SIGNAL(doubleClicked(ElementWidget*)), this, SLOT(doubleClicked(ElementWidget*)));
@@ -229,11 +248,39 @@ void MainWindow::closeTab(int n)
             return;
     }
     QWidget *w = tabWidget->widget(n);
-    widgets.remove(documents[w]);
-    documents.remove(w);
-    tabWidget->removeTab(n);
-    if(tabWidget->count() == 0)
-        newDocument();
+    Document *d = documents[w];
+    bool close = 1;
+    if(d->_changed && !d->ce)
+    {
+	int res = QMessageBox::question(this, "Save?", "Document " + d->fileName + " isn\'t save. \nDo you want to save it?", QMessageBox::Save, QMessageBox::Close, QMessageBox::Cancel);
+	if(res == QMessageBox::Cancel)
+	    return;
+	if(res == QMessageBox::Close)
+	    close = 1;
+	if(res == QMessageBox::Save)
+	{
+	    close = 1;
+	    if(d->fileName != "")
+		d->saveToFile();
+	    else
+	    {
+		QString fileName = QFileDialog::getSaveFileName(this, "Save file", "", "Locic files (*.lod)");
+		if(fileName != "")
+		    d->saveToFile(fileName);
+		else
+		    close = 0;
+	    }
+	}
+    }
+
+    if(close)
+    {
+	widgets.remove(documents[w]);
+	documents.remove(w);
+	tabWidget->removeTab(n);
+	if(tabWidget->count() == 0)
+	    newDocument();
+    }
 }
 
 void MainWindow::closeCurrentTab()
@@ -267,18 +314,27 @@ void MainWindow::showDocument(Document *d)
 {
     if(d != 0)
     {
-        tabWidget->addTab(d->workPanel(), d->name());
+	QScrollArea *sa = new QScrollArea(tabWidget);
+	sa->setWidget(d->workPanel());
+	//d->workPanel()->setGeometry(0, 0,  1000, 1000);
+	sa->setWidgetResizable(1);
+	//tabWidget->addTab(d->workPanel(), d->name());
+	tabWidget->addTab(sa, d->name());
         connect(d, SIGNAL(timeout(Document*)), this, SLOT(calculation_timeout(Document*)));
         connect(d, SIGNAL(calculation_finished(int)), this, SLOT(calculation_finished(int)));
         connect(d, SIGNAL(doubleClicked(ElementWidget*)), this, SLOT(doubleClicked(ElementWidget*)));
         connect(d, SIGNAL(calculation_started()), this, SLOT(calculation_started()));
         connect(d, SIGNAL(instrumentChanged()), this, SLOT(instrumentChanged()));
         connect(d, SIGNAL(documentChanged(Document*)), this, SLOT(documentChanged(Document*)));
-        tabWidget->setCurrentWidget(d->workPanel());
-
-        documents[d->workPanel()] = d;
-        widgets[d] = d->workPanel();
+	connect(d, SIGNAL(libraryChanged()), this, SLOT(libraryChanged()));
+	tabWidget->setCurrentWidget(sa);
+	//documents[d->workPanel()] = d;
+	//widgets[d] = d->workPanel();
+	documents[sa] = d;
+	widgets[d] = sa;
         d->setInstrument(Document::SELECT);
+
+	libraryChanged();
     }
 }
 
@@ -305,6 +361,11 @@ void MainWindow::toolBarAction(QAction * act)
     {
         documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
         documents[tabWidget->currentWidget()]->setAddingElement(new XorElement());
+    }
+    else if(act->text() == "not")
+    {
+	documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
+	documents[tabWidget->currentWidget()]->setAddingElement(new NotElement());
     }
     else if(act->text() == "or-not")
     {
@@ -363,5 +424,54 @@ void MainWindow::newDocument()
     Document *d = new Document();
     d->_name = "Untitled_" + QString::number(untitledN++) + ".lod";
     d->fileName = "";
+    d->library = new ElementLibrary();
     showDocument(d);
+}
+
+void MainWindow::libraryClicked(QListWidgetItem *lwi)
+{
+    if(documents.find(tabWidget->currentWidget()) == documents.end())
+	return;
+
+    Document *d = documents[tabWidget->currentWidget()];
+    Element *e = d->getLibraryElement(lwi->text());
+    if(e)
+    {
+	d->setInstrument(Document::ADDELEMENT);
+	d->setAddingElement(e->clone());
+    }
+}
+
+void MainWindow::libraryChanged()
+{
+    if(documents.find(tabWidget->currentWidget()) == documents.end())
+	return;
+    Document *d = documents[tabWidget->currentWidget()];
+
+    listWidget->clear();
+    listWidget->addItems(d->libraryNames());
+}
+
+void MainWindow::listWidgetMenu(QPoint pt)
+{
+    QMenu mn;
+    if(listWidget->currentIndex().column() < 0)
+	return;
+    mn.addAction(adeleteLibrary);
+    mn.exec(listWidget->mapToGlobal(pt));
+}
+
+void MainWindow::removeFromLibrary()
+{
+    if(documents.find(tabWidget->currentWidget()) == documents.end())
+	return;
+    if(!listWidget->currentItem())
+	return;
+    Document *d = documents[tabWidget->currentWidget()];
+    d->removeLibraryElement(listWidget->currentItem()->text());
+}
+
+void MainWindow::tabChanged(int)
+{
+    libraryChanged();
 }

@@ -85,11 +85,13 @@ protected:
     };
 
     QAction*    acomplex;
+    QAction*    alibrary;
 
     QWidget * tmpw;
     QPoint p1, p2;
     Element *adding;
     PointWidget     * pw1, *pw2;
+    bool    midButton;
 
     QSet<ElementWidget*>    elementWidgets;
     QSet<ElementWidget*>    selected;
@@ -113,8 +115,8 @@ public:
     void mouseMoveEvent(QMouseEvent *);
     void mouseReleaseEvent(QMouseEvent *);
     void mousePressEvent(QMouseEvent * ev);
-
     void keyPressEvent(QKeyEvent *);
+    void resizeEvent(QResizeEvent *);
 
     bool eventFilter(QObject *o, QEvent *e);
 
@@ -128,6 +130,7 @@ public:
 
     void setAddingElement(Element *e);
     void startAddingPoint();
+    void updateMinimumSize();
 
 signals:
     void doubleClicked(ElementWidget*);
@@ -135,6 +138,7 @@ signals:
 public slots:
     void stopAdding(int type = 0);
     void createComplex();
+    void addToLibrary();
 };
 
 #endif // WORKPANEL_H

@@ -74,6 +74,7 @@ public:
     virtual Document * clone();
 
     int     addConnection(int id1, int id2);
+    void    removeConnection(int id1, int id2);
     bool    canConnect(int id1, int id2);
     void    removePoint(int id);
     void    moveElement(Element *e, QPoint pos);
@@ -91,6 +92,12 @@ public:
 
     void createComplex(QSet<Element*> elements, QList<int> points);
 
+    Element * getLibraryElement(QString name);
+    QList<QString> libraryNames();
+
+    int addLibraryElement(QString name, ComplexElement* e);
+    int removeLibraryElement(QString name);
+
 signals:
     void timeout(Document*);
     void calculation_finished(int);
@@ -98,6 +105,7 @@ signals:
     void doubleClicked(ElementWidget*);
     void instrumentChanged();
     void documentChanged(Document*);
+    void libraryChanged();
 public slots:
     void timeout(Controller*c);
     void needCalculation(Element*);

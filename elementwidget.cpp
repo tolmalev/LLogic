@@ -38,7 +38,7 @@ void ElementWidget::setElement(Element *_e)
 	case ANDNOT:    toolT=QString::fromAscii("And-Not"); break;
 	case ORNOT:	toolT=QString::fromAscii("Or-Not"); break;
 	case XOR:	toolT=QString::fromAscii("Xor"); break;
-	case COMPLEX:	toolT=QString::fromAscii("Complex Element"); break;
+	case COMPLEX:	toolT=e->text; break;
     }
     setToolTip(toolT);
 }
@@ -65,8 +65,11 @@ void ElementWidget::paintEvent(QPaintEvent *event)
         painter.drawLine(w-1-grid_size, y, w-1, y);
     }
 
-    painter.setFont(QFont("Arial", 11));
-    painter.drawText(13, 17, e->text);
+    if(e->type() != COMPLEX)
+    {
+	painter.setFont(QFont("Arial", 11));
+	painter.drawText(13, 17, e->text);
+    }
 }
 
 

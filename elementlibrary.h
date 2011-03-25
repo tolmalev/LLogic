@@ -20,6 +20,7 @@ public:
     ComplexElement *getElement(QString name);
     bool hasElement(QString name);
     int addElement(QString name, ComplexElement *e);
+    int removeElement(QString name);
 
     ElementLibrary * clone();
 
@@ -27,6 +28,8 @@ public:
     ComplexElement *elementFromXml(QDomElement d_el);
     QDomElement toXml(QDomDocument doc);
     QDomElement elementToXml(QDomDocument doc, QString name);
+
+    QList<QString> names();
 
 signals:
 

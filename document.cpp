@@ -84,6 +84,7 @@ int Document::saveToFile(QString filename)
 {
     if(filename == "")
         filename = this->fileName;
+    this->fileName = filename;
     int ind = std::max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
     _name = filename.mid(ind+1);
     QFile f(filename);

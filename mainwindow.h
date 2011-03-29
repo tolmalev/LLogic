@@ -60,6 +60,7 @@ protected:
     QAction *aselect;
     QAction *asend;
     QAction *apoint;
+    QAction *a8bitsend;
     QAction *arec;
     QAction *aautoCalc;
 

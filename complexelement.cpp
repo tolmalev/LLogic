@@ -1,6 +1,7 @@
 #include "complexelement.h"
 #include "controller.h"
 #include "elementlibrary.h"
+#include "simpleelements.h"
 
 ComplexElement::ComplexElement(int _in_cnt, int _out_cnt )
 {

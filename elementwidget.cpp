@@ -5,6 +5,7 @@
 #include "simpleelements.h"
 #include <QPainter>
 #include <QGraphicsTextItem>
+#include <QLineEdit>
 
 ElementWidget::ElementWidget(QWidget *parent) :
     QWidget(parent)
@@ -70,6 +71,7 @@ void ElementWidget::paintEvent(QPaintEvent *event)
 	painter.setFont(QFont("Arial", 11));
 	painter.drawText(13, 17, e->text);
     }
+    event->accept();
 }
 
 
@@ -90,6 +92,7 @@ int max(int a, int b)
 void ElementWidget::mouseDoubleClickEvent(QMouseEvent * ev)
 {
     emit doubleClicked(this);
+    ev->accept();
 }
 
 void ElementWidget::changeDrawType()
@@ -139,14 +142,16 @@ void SendElementWidget::paintEvent(QPaintEvent *event)
         painter.setBrush(QColor(255, 0, 0, 150));
 
     painter.drawEllipse(2, 2, w-1-grid_size-4, h-1-4);
+
+    event->accept();
 }
 
-void SendElementWidget::mouseDoubleClickEvent(QMouseEvent *)
+void SendElementWidget::mouseDoubleClickEvent(QMouseEvent *ev)
 {
     ((SendElement*)e)->val ^= 1;
-    //qDebug("%d", ((SendElement*)e)->val);
     emit needCalculation(e);
     update();
+    ev->accept();
 }
 
 void ReceiveElementWidget::updateSize()
@@ -179,4 +184,67 @@ void ReceiveElementWidget::paintEvent(QPaintEvent *event)
         painter.setBrush(QColor(255, 0, 0, 150));
 
     painter.drawEllipse(grid_size + 2, 2, w-1-grid_size-4, h-1-4);
+
+    event->accept();
+}
+
+void NumberSendElement8Widget::updateSize()
+{
+    setGeometry(e->view().x*grid_size, e->view().y*grid_size, (e->view().width + 1) * grid_size, e->view().height* grid_size);
+}
+
+void NumberSendElement8Widget::mouseDoubleClickEvent(QMouseEvent *ev)
+{
+    if(lineEdit == 0)
+    {
+	int num = ((NumberSendElement8*)e)->num;
+	lineEdit = new QLineEdit(QString::number(num), this);
+	lineEdit->selectAll();
+	connect(lineEdit, SIGNAL(editingFinished ()), this, SLOT(numberChanged()));
+	lineEdit->show();
+    }
+    lineEdit->setFocus();
+    ev->accept();
+}
+
+void NumberSendElement8Widget::paintEvent(QPaintEvent *event)
+{
+    QPainter painter(this);
+    NumberSendElement8* el = (NumberSendElement8*)e;
+
+    int w = geometry().width();
+    int h = geometry().height();
+
+    QPixmap p(":/images/element_background.png");
+    painter.setPen(QColor(132, 2, 4));
+    painter.fillRect(0, 0, w-1-grid_size, h-1, p);
+    painter.drawRect(0, 0, w-1-grid_size, h-1);
+    for(int i = 0; i < el->out_cnt; i++)
+    {
+	int y = (i+1)*grid_size;
+	painter.drawLine(w-1-grid_size, y, w-1, y);
+    }
+
+    painter.setFont(QFont("Arial", 12));
+    painter.drawText(15, 47, QString::number(el->num));
+
+    event->accept();
+}
+
+void NumberSendElement8Widget::numberChanged()
+{
+    QString n = lineEdit->text();
+    bool ok = 0;
+    int nn = n.toInt(&ok);
+    if(!ok)
+	return;
+    if(nn < 0)
+	nn = 0;
+    if(nn > 255)
+	nn = 255;
+    ((NumberSendElement8*)e)->num = nn;
+    e->text = ""+nn;
+    emit needCalculation(e);
+    lineEdit->deleteLater();
+    lineEdit = 0;
 }

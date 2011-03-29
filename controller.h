@@ -18,8 +18,8 @@ class Controller : public QObject
     friend class Document;
     friend class WorkPanel;
 
-   // protected:
-public:
+    protected:
+//public:
         int n;
         bool calculating;
         QQueue<Element*> queue;

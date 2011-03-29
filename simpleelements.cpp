@@ -4,6 +4,24 @@
 #include "elementlibrary.h"
 #include <QApplication>
 
+
+void NumberSendElement8::recalc()
+{
+    int n = num;
+    for(int i = 0; i < 8; i++)
+    {
+	c->set(out[i], n%2);
+	n /= 2;
+    }
+}
+
+Element* NumberSendElement8::clone()
+{
+    NumberSendElement8 *ns = new NumberSendElement8;
+    ns->num = num;
+    return ns;
+}
+
 void SendElement::recalc()
 {
     c->set(out.first(), val);

@@ -30,7 +30,6 @@ WorkPanel::WorkPanel(ComplexElement *ce, QWidget *parent) :
     state = NONE;
     setMouseTracking(1);
     panel_type = DOCUMENT;
-    //grabKeyboard();
     if(ce != 0)
     {
         panel_type = ELEMENT;
@@ -142,6 +141,7 @@ void WorkPanel::paintEvent(QPaintEvent * ev)
         painter.drawLine(br, br - dx);
         painter.drawLine(tr, tr + dy);
     }
+    ev->accept();
 }
 
 void WorkPanel::addElement(Element *e)
@@ -149,9 +149,10 @@ void WorkPanel::addElement(Element *e)
     ElementWidget *ew;
     switch(e->type())
     {
-        case SEND:      ew = new SendElementWidget(this); break;
-        case RECEIVE:   ew = new ReceiveElementWidget(this); break;
-        default:        ew = new ElementWidget(this); break;
+	case SEND:      ew = new SendElementWidget(this);	    break;
+	case RECEIVE:   ew = new ReceiveElementWidget(this);	    break;
+	case NUMSEND:	ew = new NumberSendElement8Widget(this);    break;
+	default:        ew = new ElementWidget(this);		    break;
     }
     ew->show();
     elementWidgets.insert(ew);
@@ -231,6 +232,7 @@ void WorkPanel::mouseMoveEvent(QMouseEvent *ev)
         //qDebug("%d %d %d %d", minx, miny, maxx, maxy);
 
     }
+    ev->accept();
 }
 
 void WorkPanel::mousePressEvent(QMouseEvent *ev)
@@ -258,6 +260,7 @@ void WorkPanel::mousePressEvent(QMouseEvent *ev)
             }
         }
     }
+    ev->accept();
 }
 
 void WorkPanel::mouseReleaseEvent(QMouseEvent *ev)
@@ -287,19 +290,21 @@ void WorkPanel::mouseReleaseEvent(QMouseEvent *ev)
         }
         update();
     }
+    ev->accept();
 }
 
-void SelectWidget::paintEvent(QPaintEvent *)
+void SelectWidget::paintEvent(QPaintEvent *ev)
 {
     QPainter p(this);
     p.setPen(QColor(53, 103, 255, 255));
     p.fillRect(0, 0, width()-1, height()-1, QColor(176, 204, 241, 100));
     p.drawRect(0, 0, width()-1, height()-1);
+    ev->accept();
 }
 
 bool WorkPanel::eventFilter(QObject *o, QEvent *e)
 {
-    setFocus();
+    //setFocus();
     if(e->type() == QEvent::MouseButtonDblClick)
     {
         if(o->inherits("PointWidget"))
@@ -358,12 +363,12 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                         tmpw = new LiningWidget(this, this);
                         tmpw->show();
                         p2 = p1 = toGrid(pw->mapTo(this, me->pos()));
-                        tmpw->setGeometry(geometry());
+			tmpw->setGeometry(0, 0, width(), height());
                     }
                 }
             }
         }
-        return 1;
+	return 1;
     }
     else if(e->type() == QEvent::MouseMove)
     {
@@ -420,9 +425,9 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
             }
 
             if(pw)
-            {
-                if(pw != pw1)
-                    qDebug("pwpwwp");
+	    {
+		if(pw2)
+		    pw2->setDrawType(0);
                 pw2 = pw;
 		if(d->canConnect(pw1->point, pw2->point) || midButton)
                 {
@@ -440,7 +445,7 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                 }
             }
         }
-        return 1;
+	return 1;
     }
     else if(e->type() == QEvent::MouseButtonRelease)
     {
@@ -511,7 +516,8 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                 tmpw->deleteLater();
             tmpw=0;
 	    update();
-            state = NONE;
+	    state = NONE;
+	    setFocus();
         }
         else if(state == LINING)
 	{
@@ -547,7 +553,7 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
 	    pw2=0;
 	}
 
-        return 1;
+	return 1;
     }
 
     return QWidget::eventFilter(o, e);
@@ -719,7 +725,7 @@ AddingWidget::AddingWidget(QWidget *parent, WorkPanel*wp, int wd, int h, Element
         ((ElementWidget*)tmp)->setElement(e);
         ((ElementWidget*)tmp)->updateSize();
     }
-    grabKeyboard();
+    //grabKeyboard();
     //setFocusPolicy(Qt::ClickFocus);
 }
 
@@ -902,17 +908,17 @@ void WorkPanel::updateMinimumSize()
     int mh = 0;
     foreach(ElementWidget*ew, elementWidgets)
     {
-	mw = std::max(mw, ew->geometry().right()+grid_size);
-	mh = std::max(mh, ew->geometry().bottom()+grid_size);
+	mw = std::max(mw, ew->geometry().right()+2*grid_size);
+	mh = std::max(mh, ew->geometry().bottom()+2*grid_size);
     }
     foreach(PointWidget*ew, freePoints)
     {
-	mw = std::max(mw, ew->geometry().right()+grid_size);
-	mh = std::max(mh, ew->geometry().bottom()+grid_size);
+	mw = std::max(mw, ew->geometry().right()+2*grid_size);
+	mh = std::max(mh, ew->geometry().bottom()+2*grid_size);
     }
     if(ce)
     {
-	mh = max(mh, (ce->in_cnt+1)*2*grid_size);
+	mh = max(mh, (ce->in_cnt+1)*3*grid_size);
     }
     setMinimumWidth(mw);
     setMinimumHeight(mh);

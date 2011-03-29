@@ -7,6 +7,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QToolButton>
+#include <QSplitter>
 
 #include "mainwindow.h"
 #include "document.h"
@@ -81,6 +82,28 @@ void MainWindow::triggered(QAction *act)
             }
         }
     }
+    else if(act->text() == "Import library")
+    {
+	QString fileName = QFileDialog::getOpenFileName(this, "Open File",
+							"",
+							"Logic files (*.lod)");
+	if(fileName != "")
+	{
+	    Document *lib = Document::fromFile(fileName);
+	    if(lib)
+	    {
+		QStringList list;
+		foreach(QString s, lib->libraryNames())
+		{
+		    d->addLibraryElement(s, (ComplexElement*)lib->getLibraryElement(s));
+		}
+	    }
+	    else
+	    {
+		QMessageBox::critical(this, "error", "Can't read document from " + fileName);
+	    }
+	}
+    }
 }
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -91,27 +114,30 @@ MainWindow::MainWindow(QWidget *parent) :
     calculating_message = 0;
     setGeometry(100, 100, 800, 500);
 
-    QWidget * centralWidget = new QWidget();
+    QSplitter * centralWidget = new QSplitter(this);
     QWidget * leftWidget = new QWidget();
     leftWidget->setMinimumWidth(100);
-    leftWidget->setMaximumWidth(100);
+    leftWidget->setMaximumWidth(200);
+    centralWidget->addWidget(leftWidget);
+    //centralWidget->setSizes(l);
 
     QHBoxLayout *hb = new QHBoxLayout();
     QVBoxLayout *vb = new QVBoxLayout();
-    hb->setSpacing(0);
-    vb->setMargin(1);
-    leftWidget->setLayout(vb);
+    hb->setSpacing(1);
+    vb->setMargin(0);
+    leftWidget->setLayout(vb);    
 
     toolBar     = new QToolBar();
     aand        = new QAction("and",    toolBar);
     asend       = new QAction("send",   toolBar);
     arec        = new QAction("rec",    toolBar);
     aor         = new QAction("or",     toolBar);
-    anot        = new QAction("not",     toolBar);
+    anot        = new QAction("not",    toolBar);
     axor        = new QAction("xor",    toolBar);
     aornot      = new QAction("or-not", toolBar);
     aandnot     = new QAction("and-not",toolBar);
-    apoint      = new QAction("point",toolBar);
+    apoint      = new QAction("point",	toolBar);
+    a8bitsend	= new QAction("8bit->", toolBar);
     aselect     = new QAction("select", toolBar);
     aautoCalc   = new QAction("auto",   toolBar);
 
@@ -128,6 +154,7 @@ MainWindow::MainWindow(QWidget *parent) :
     aselect->setCheckable(1);
     aautoCalc->setCheckable(1);
     apoint->setCheckable(1);
+    a8bitsend->setCheckable(1);
 
     aselect->setChecked(1);
     aautoCalc->setChecked(1);
@@ -142,8 +169,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ag->addAction(arec);
     ag->addAction(apoint);
     ag->addAction(aselect);
+    ag->addAction(a8bitsend);
 
     toolBar->addActions(ag->actions());
+    toolBar->addSeparator();
     toolBar->addAction(aautoCalc);
     toolBar->show();
 
@@ -171,6 +200,7 @@ MainWindow::MainWindow(QWidget *parent) :
     file->addAction(save);
     file->addAction(saveas);
     file->addAction(newdoc);
+    file->addAction("Import library");
 
     QAction *ctrlf4 = new QAction("Close tab", this);
     ctrlf4->setShortcut(QKeySequence("Ctrl+F4"));
@@ -187,8 +217,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     tabWidget = new TabWidget();
     tabWidget->setMinimumSize(300, 200);
-    hb->addWidget(leftWidget);
-    hb->addWidget(tabWidget);
+    centralWidget->addWidget(tabWidget);
+    //hb->addWidget(leftWidget);
+    //hb->addWidget(tabWidget);
 
     listWidget = new QListWidget();
     listWidget->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -196,13 +227,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(listWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(libraryClicked(QListWidgetItem*)));
     connect(listWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(listWidgetMenu(QPoint)));
 
-
-
-
     vb->addWidget(listWidget, 1);
 
-    centralWidget->setLayout(hb);
-    setCentralWidget(centralWidget);
     setMenuBar(menuBar);
 
     tabWidget->setMovable(1);
@@ -211,6 +237,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeTab(int)));
     connect(tabWidget, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
+
+    centralWidget->setStretchFactor(0, 0);
+    QList<int> l;
+    l.append(100);
+    l.append(1000);
+    centralWidget->setSizes(l);
+    setCentralWidget(centralWidget);
 }
 
 MainWindow::~MainWindow()
@@ -358,6 +391,11 @@ void MainWindow::toolBarAction(QAction * act)
     {
         documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
         documents[tabWidget->currentWidget()]->setAddingElement(new OrElement());
+    }
+    else if(act->text() == "8bit->")
+    {
+	documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
+	documents[tabWidget->currentWidget()]->setAddingElement(new NumberSendElement8);
     }
     else if(act->text() == "xor")
     {

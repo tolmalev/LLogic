@@ -6,6 +6,7 @@
 #include <QWidget>
 #include <QMouseEvent>
 #include <QTimer>
+#include <QLineEdit>
 
 
 class ElementWidget : public QWidget
@@ -20,6 +21,7 @@ class ElementWidget : public QWidget
         int drawType;
 
         Element * e;
+	QWidget *l;
     public:
         explicit ElementWidget(QWidget *parent = 0);
 
@@ -60,6 +62,21 @@ class ReceiveElementWidget : public ElementWidget{
         explicit ReceiveElementWidget(QWidget *parent = 0) : ElementWidget(parent){};
         virtual void updateSize();
         virtual void paintEvent ( QPaintEvent * event );
+};
+
+class NumberSendElement8Widget : public ElementWidget{
+    Q_OBJECT
+
+    QLineEdit *lineEdit;
+
+    public:
+	explicit NumberSendElement8Widget(QWidget *parent = 0) : ElementWidget(parent){lineEdit = 0;};
+	virtual void updateSize();
+	virtual void paintEvent ( QPaintEvent * event );
+
+	void mouseDoubleClickEvent(QMouseEvent *);
+    public slots:
+	void numberChanged();
 };
 
 #endif // ELEMENTWIDGET_H

@@ -19,6 +19,7 @@ enum elementTypes{
     SEND,
     RECEIVE,
     LIBRARY,
+    NUMSEND,
 };
 
 QString typeString(int type);
@@ -32,6 +33,8 @@ class Element : public QObject
     friend class Document;
     friend class LibraryElement;
     friend class AddingWidget;
+
+    friend class NumberSendElement8Widget;
 
     protected:
         int _type;

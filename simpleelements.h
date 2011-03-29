@@ -7,6 +7,17 @@
 Element* SimpleElement(int type);
 
 
+class NumberSendElement8 : public Element
+{
+    friend class NumberSendElement8Widget;
+	int num;
+    public:
+	NumberSendElement8() : Element(0, 0, 8, NUMSEND), num(0){};
+	virtual void recalc();
+	virtual Element*clone();
+};
+
+
 class SendElement : public Element
 {
     friend class SendElementWidget;

@@ -140,6 +140,8 @@ Element * Element::fromXml(QDomElement d_el, Document*d)
         el = new ReceiveElement();
     else if(type == "xor")
         el = new XorElement();
+    else if(type == "8bitsend")
+	el = new NumberSendElement8();
     else if(type == "complex")
         return ComplexElement::fromXml(d_el);
     else if(type == "library")
@@ -179,16 +181,17 @@ QString typeString(int type)
 {
     switch(type)
     {
-        case AND:return "and";
-        case OR:return "or";
-        case NOT:return "not";
-        case COMPLEX:return "complex";
-        case ANDNOT:return "andnot";
-        case ORNOT:return "ornot";
-        case XOR:return "xor";
-        case SEND:return "send";
-        case RECEIVE:return "receive";
-        case LIBRARY:return "library";
+	case AND:	return "and";
+	case OR:	return "or";
+	case NOT:	return "not";
+	case COMPLEX:	return "complex";
+	case ANDNOT:	return "andnot";
+	case ORNOT:	return "ornot";
+	case XOR:	return "xor";
+	case SEND:	return "send";
+	case RECEIVE:	return "receive";
+	case LIBRARY:	return "library";
+	case NUMSEND:	return "8bitsend";
     }
     return "";
 }

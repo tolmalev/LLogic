@@ -19,11 +19,14 @@ int main(int argc, char *argv[])
 
     if(argc>1)
     {
-	Document * d = Document::fromFile(argv[1]);
-	if(d)
-	    w.showDocument(d);
-	else
-	    w.newDocument();
+	for(int i = 1; i < argc; i++)
+	{
+	    Document * d = Document::fromFile(argv[i]);
+	    if(d)
+		w.showDocument(d);
+	    else
+		w.newDocument();
+	}
     }
     else
 	w.newDocument();

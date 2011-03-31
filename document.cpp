@@ -678,13 +678,9 @@ QDomElement Document::selectionToXml(QDomDocument doc, QSet<Element *> elements,
 void Document::addToClipboard(QSet<Element *> elements, QSet<int> points)
 {
     QMimeData *d = new QMimeData;
-
-    QString str = "elements : " + QString::number(elements.count()) + " points : " + QString::number(points.count());
-    qWarning(("copy  " + str).toAscii());
     QDomDocument doc("LDocument");
     doc.appendChild(selectionToXml(doc, elements, points));
     d->setData("LLogic/selection", doc.toByteArray());
-
     qApp->clipboard()->setMimeData(d);
 }
 

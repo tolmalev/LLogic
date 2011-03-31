@@ -21,7 +21,8 @@ SOURCES += main.cpp\
     complexelement.cpp \
     document.cpp \
     pointwidget.cpp \
-    elementlibrary.cpp
+    elementlibrary.cpp \
+    workpanel_lining.cpp
 
 HEADERS  += mainwindow.h \
     workpanel.h \

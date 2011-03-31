@@ -105,6 +105,9 @@ protected:
         LINING,
     };
 
+    void calculateLines();
+    void drawLines(QPainter &p);
+
 public:
     explicit WorkPanel(ComplexElement*ce = 0, QWidget *parent = 0);
     void paintEvent(QPaintEvent *);

@@ -7,6 +7,7 @@
 #include "elementlibrary.h"
 #include "simpleelements.h"
 #include "algorithm"
+#include <QApplication>
 
 Document::Document(int _type, ComplexElement*el, QObject *parent) : QObject(parent), ce(el),_document_type(_type)
 {
@@ -41,13 +42,14 @@ void Document::addElement(Element *e)
 	connect(((ComplexElement*)e)->d, SIGNAL(documentChanged(Document*)), this, SLOT(changed()));
 }
 
-void Document::addPoint(QPoint pos, int p)
+int Document::addPoint(QPoint pos, int p)
 {
     p = c->new_point(p);
     freePoints[p] = pos;
     if(panel)
         panel->addPoint(p, pos);
     changed();
+    return p;
 }
 
 WorkPanel* Document::workPanel()
@@ -617,4 +619,148 @@ Document* Document::rootDocument()
     if(!ce)
 	return this;
     return ((Element*)ce)->d->rootDocument();
+}
+
+QDomElement Document::selectionToXml(QDomDocument doc, QSet<Element *> elements, QSet<int> points)
+{
+    QSet<int> pts = points;
+    QDomElement el = doc.createElement("selection");
+    int top = 10000, left = 10000;
+    foreach(Element*e, elements)
+    {
+	top = std::min(top, e->view().y);
+	left = std::min(left, e->view().x);
+    }
+    foreach(int i, points)
+    {
+	top = std::min(top, freePoints[i].y());
+	left = std::min(left, freePoints[i].x());
+    }
+
+    foreach(Element*e, elements)
+    {
+	e->_view.x -= left;
+	e->_view.y -= top;
+	el.appendChild(e->toXml(doc));
+	foreach(int i, e->in)
+	    pts.insert(i);
+	foreach(int i, e->out)
+	    pts.insert(i);
+	e->_view.x += left;
+	e->_view.y += top;
+    }
+    foreach(int id, points)
+    {
+	QDomElement pt = doc.createElement("point");
+	pt.setAttribute("id", id);
+	pt.setAttribute("x", freePoints[id].x()-left);
+	pt.setAttribute("y", freePoints[id].y()-top);
+	el.appendChild(pt);
+    }
+    foreach(int id, pts)
+    {
+	foreach(int i, *c->connections[id])
+	{
+	    if(id > i)
+	    {
+		QDomElement connection = doc.createElement("connection");
+		connection.setAttribute("from", id);
+		connection.setAttribute("to", i);
+		el.appendChild(connection);
+	    }
+	}
+    }
+
+
+    return el;
+}
+
+void Document::addToClipboard(QSet<Element *> elements, QSet<int> points)
+{
+    QMimeData *d = new QMimeData;
+
+    QString str = "elements : " + QString::number(elements.count()) + " points : " + QString::number(points.count());
+    qWarning(("copy  " + str).toAscii());
+    QDomDocument doc("LDocument");
+    doc.appendChild(selectionToXml(doc, elements, points));
+    d->setData("LLogic/selection", doc.toByteArray());
+
+    qApp->clipboard()->setMimeData(d);
+}
+
+void Document::addFromClipboard()
+{
+    QByteArray ba = qApp->clipboard()->mimeData()->data("LLogic/selection");
+    QDomDocument doc;
+    if(doc.setContent(ba))
+    {
+	QSet<Element*> els;
+	QSet<int> points;
+	QMap<int, int> pts;
+	QDomElement de = doc.documentElement();
+	QDomElement ch_e = de.firstChildElement();
+	while(!ch_e.isNull())
+	{
+	    if(ch_e.tagName() == "element")
+	    {
+		Element *e = Element::fromXml(ch_e, this);
+		if(e == 0)
+		    return;
+		e->c = c;
+		e->d = this;
+		for(int i = 0; i < e->in_cnt; i++)
+		{
+		    int w = e->in.at(i);
+		    int p = c->new_point();
+		    pts[w] = p;
+		    e->in.push_back(p);
+		    c->connect_element(p, e);
+		}
+		for(int i = 0; i < e->in_cnt; i++)
+		    e->in.pop_front();
+		for(int i = 0; i < e->out_cnt; i++)
+		{
+		    int w = e->out.at(i);
+		    int p = c->new_point();
+		    pts[w] = p;
+		    e->out.push_back(p);
+		    c->connect_in_element(p, e);
+		}
+		for(int i = 0; i < e->out_cnt; i++)
+		    e->out.pop_front();
+
+		elements.insert(e);
+		if(e->type() == COMPLEX)
+		    connect(((ComplexElement*)e)->d, SIGNAL(documentChanged(Document*)), this, SLOT(changed()));
+		if(panel)
+		    panel->addElement(e);
+		els.insert(e);
+	    }
+	    else if(ch_e.tagName() == "point")
+	    {
+		int id = ch_e.attribute("id", "-1").toInt();
+		int x   = ch_e.attribute("x", "-1").toInt();
+		int y   = ch_e.attribute("y", "-1").toInt();
+
+
+		if(id == -1 || x == -1 || y==-1)
+		    return;
+		pts[id] = addPoint(QPoint(x,y));
+		points.insert(pts[id]);
+	    }
+	    else if(ch_e.tagName() == "connection")
+	    {
+		int from = ch_e.attribute("from", "-1").toInt();
+		int to   = ch_e.attribute("to", "-1").toInt();
+
+		if(to == -1 || from == -1)
+		    return;
+		if(c->add_connection(pts[from], pts[to]))
+		    return;
+	    }
+	    ch_e = ch_e.nextSiblingElement();
+	}
+	if(panel)
+	    panel->setSelection(els, points);
+    }
 }

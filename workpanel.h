@@ -118,6 +118,8 @@ public:
     void keyPressEvent(QKeyEvent *);
     void resizeEvent(QResizeEvent *);
 
+    void setSelection(QSet<Element*>, QSet<int> points);
+
     bool eventFilter(QObject *o, QEvent *e);
 
     bool canMoveTo(QWidget *ew, QPoint p, bool sel=1);

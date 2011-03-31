@@ -696,6 +696,26 @@ void WorkPanel::keyPressEvent(QKeyEvent * ev)
 
         update();
     }
+    else if(ev->key() == Qt::Key_C)
+    {
+	if(qApp->keyboardModifiers() == Qt::ControlModifier)
+	{
+	    QSet<Element*> elements;
+	    QSet<int> _points;
+	    foreach(ElementWidget *ew, selected)
+		elements.insert(ew->e);
+	    foreach(PointWidget *pw, selectedFreePoints)
+		_points.insert(pw->point);
+	    d->addToClipboard(elements, _points);
+	}
+    }
+    else if(ev->key() == Qt::Key_V)
+    {
+	if(qApp->keyboardModifiers() == Qt::ControlModifier)
+	{
+	    d->addFromClipboard();
+	}
+    }
 }
 
 void WorkPanel::setAddingElement(Element *e)
@@ -922,4 +942,20 @@ void WorkPanel::updateMinimumSize()
     }
     setMinimumWidth(mw);
     setMinimumHeight(mh);
+}
+
+void WorkPanel::setSelection(QSet<Element*> els, QSet<int> pts)
+{
+    selected.clear();
+    selectedFreePoints.clear();
+
+    foreach(ElementWidget * ew, elementWidgets)
+	if(els.find(ew->e) != els.end())
+	    selected.insert(ew);
+    foreach(PointWidget *pw, points)
+	if(pts.find(pw->point) != pts.end())
+	    selectedFreePoints.insert(pw);
+
+    update();
+    setFocus();
 }

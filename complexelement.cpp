@@ -7,6 +7,7 @@ ComplexElement::ComplexElement(int _in_cnt, int _out_cnt )
 {
     d = new Document(Document::ELEMENT, this);
     d->library = 0;
+    text = "complex";
     in_cnt = _in_cnt;
     out_cnt = _out_cnt;
 

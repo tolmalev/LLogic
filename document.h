@@ -9,6 +9,8 @@
 #include <QMap>
 #include <QPoint>
 #include <QtXml/QDomElement>
+#include <QClipboard>
+#include <QMimeData>
 
 #include "classes.h"
 
@@ -65,6 +67,8 @@ public:
     QDomElement elementsToXml(QDomDocument doc);
     QDomElement connectionsToXml(QDomDocument doc);
     QDomElement freePointsToXml(QDomDocument doc);
+
+    QDomElement selectionToXml(QDomDocument doc, QSet<Element*> elements, QSet<int> points);
     int     saveToFile(QString _filename = "");
 
     bool    parseElements(QDomElement d_el);
@@ -103,6 +107,9 @@ public:
 
     void setUnchanged();
 
+    void addToClipboard(QSet<Element*> elements, QSet<int> points);
+    void addFromClipboard();
+
 signals:
     void timeout(Document*);
     void calculation_finished(int);
@@ -115,7 +122,7 @@ public slots:
     void timeout(Controller*c);
     void needCalculation(Element*);
     void addElement(Element* e);
-    void addPoint(QPoint pos, int p=-1);
+    int	 addPoint(QPoint pos, int p=-1);
 };
 
 #endif // DOCUMENT_H

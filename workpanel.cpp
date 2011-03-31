@@ -169,6 +169,7 @@ void WorkPanel::addElement(Element *e)
     if(tmpw)
         tmpw->raise();
     updateMinimumSize();
+    calculateLines();
     update();
 }
 
@@ -524,9 +525,6 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
             tmpw=0;
             state = NONE;
         }
-
-
-
 	if(pw1)
 	{
 	    pw1->setDrawType(0);
@@ -537,6 +535,7 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
 	    pw2->setDrawType(0);
 	    pw2=0;
 	}
+	calculateLines();
 
 	return 1;
     }
@@ -679,6 +678,7 @@ void WorkPanel::keyPressEvent(QKeyEvent * ev)
         selectedFreePoints.clear();
         d->calcIfNeed();
 
+	calculateLines();
         update();
     }
     else if(ev->key() == Qt::Key_C)
@@ -699,6 +699,7 @@ void WorkPanel::keyPressEvent(QKeyEvent * ev)
 	if(qApp->keyboardModifiers() == Qt::ControlModifier)
 	{
 	    d->addFromClipboard();
+	    calculateLines();
 	}
     }
 }
@@ -765,7 +766,7 @@ void AddingWidget::mouseReleaseEvent(QMouseEvent *ev)
             QPoint tm = wp->toGrid(pt - QPoint(20, 10));
             wp->adding->_view.x = tm.x()/grid_size;
             wp->adding->_view.y = tm.y()/grid_size;
-            emit addElement(wp->adding);
+	    emit addElement(wp->adding);
             wp->adding = wp->adding->clone();
         }
     }

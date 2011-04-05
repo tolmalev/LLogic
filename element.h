@@ -33,6 +33,7 @@ class Element : public QObject
     friend class Document;
     friend class LibraryElement;
     friend class AddingWidget;
+    friend class ComplexElement;
 
     friend class NumberSendElement8Widget;
 

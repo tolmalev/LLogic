@@ -38,6 +38,8 @@ class LiningWidget : public QWidget{
 class AddingWidget : public QWidget{
     Q_OBJECT
 
+    friend class WorkPanel;
+
     WorkPanel *wp;
     QWidget *tmp;
     int width, height;
@@ -52,7 +54,9 @@ class AddingWidget : public QWidget{
         void paintEvent(QPaintEvent *);
         void mousePressEvent(QMouseEvent *);
         void mouseMoveEvent(QMouseEvent *);
-        void mouseReleaseEvent(QMouseEvent *);
+	void mouseReleaseEvent(QMouseEvent *);
+
+	void dragEnterEvent(QDragEnterEvent *);
 
         void enterEvent(QEvent *){mouseIn=1;}
         void leaveEvent(QEvent *){mouseIn=0;update();}
@@ -74,6 +78,8 @@ class WorkPanel : public QWidget
     friend class LiningWidget;
     friend class AddingWidget;
     QMap<int, PointWidget*> points;
+
+
 protected:
     Document *d;
     ComplexElement *ce;
@@ -86,6 +92,7 @@ protected:
 
     QAction*    acomplex;
     QAction*    alibrary;
+    QAction*    abuildtable;
 
     QWidget * tmpw;
     QPoint p1, p2;
@@ -121,6 +128,11 @@ public:
     void keyPressEvent(QKeyEvent *);
     void resizeEvent(QResizeEvent *);
 
+    void dragEnterEvent(QDragEnterEvent *);
+    void dragLeaveEvent(QDragLeaveEvent *);
+    void dragMoveEvent(QDragMoveEvent *);
+    void dropEvent(QDropEvent *);
+
     void setSelection(QSet<Element*>, QSet<int> points);
 
     bool eventFilter(QObject *o, QEvent *e);
@@ -144,6 +156,7 @@ public slots:
     void stopAdding(int type = 0);
     void createComplex();
     void addToLibrary();
+    void buildTable();
 };
 
 #endif // WORKPANEL_H

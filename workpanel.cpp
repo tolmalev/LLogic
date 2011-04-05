@@ -7,6 +7,9 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QDebug>
+#include <QFileDialog>
+
+#include "simpleelements.h"
 
 #include <cmath>
 
@@ -17,6 +20,7 @@ using namespace std;
 #include "element.h"
 #include "complexelement.h"
 #include "elementwidget.h"
+#include "mainwindow.h"
 #include "stdio.h"
 #include "document.h"
 #include "controller.h"
@@ -30,6 +34,7 @@ WorkPanel::WorkPanel(ComplexElement *ce, QWidget *parent) :
     state = NONE;
     setMouseTracking(1);
     panel_type = DOCUMENT;
+    setAcceptDrops(1);
     if(ce != 0)
     {
         panel_type = ELEMENT;
@@ -58,10 +63,12 @@ WorkPanel::WorkPanel(ComplexElement *ce, QWidget *parent) :
 
     acomplex = new QAction("Create complex element", this);
     acomplex->setShortcut(QKeySequence("Ctrl+Shift+C"));
+    abuildtable = new QAction("Build the thuth table", this);
 
     alibrary = new QAction("Add this element to the library", this);
     connect(acomplex, SIGNAL(triggered()), this, SLOT(createComplex()));
     connect(alibrary, SIGNAL(triggered()), this, SLOT(addToLibrary()));
+    connect(abuildtable, SIGNAL(triggered()), this, SLOT(buildTable()));
 }
 
 QPoint WorkPanel::toGrid(QPoint a)
@@ -73,7 +80,7 @@ QPoint WorkPanel::toGrid(QPoint a)
 void WorkPanel::paintEvent(QPaintEvent * ev)
 {
     QPainter painter(this);
-    QPixmap p(":/images/background.png");
+    QPixmap p = MainWindow::wnd->pixmap(":/images/background.png");
     int w = geometry().width();
     int h = geometry().height();
     painter.fillRect(0, 0, w, h, p);
@@ -229,7 +236,7 @@ void WorkPanel::mousePressEvent(QMouseEvent *ev)
     {
         if(ev->button() == Qt::LeftButton)
         {
-            tmpw = new SelectWidget((QWidget*)this);
+	    tmpw = new SelectWidget((QWidget*)this);
             tmpw->setGeometry(ev->x(), ev->y(), 0, 0);
             p1 = QPoint(ev->pos());
             tmpw->setAutoFillBackground(0);
@@ -239,7 +246,7 @@ void WorkPanel::mousePressEvent(QMouseEvent *ev)
         {
             if(tmpw)
             {
-                tmpw->deleteLater();
+		tmpw->deleteLater();
                 tmpw=0;
                 selected.clear();
                 selectedFreePoints.clear();
@@ -256,7 +263,7 @@ void WorkPanel::mouseReleaseEvent(QMouseEvent *ev)
 
     if(tmpw)
     {
-        tmpw->deleteLater();
+	tmpw->deleteLater();
         QRect rt = tmpw->geometry();
         tmpw=0;
         if(qApp->keyboardModifiers() != Qt::ControlModifier)
@@ -320,10 +327,11 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                         selected.insert(ew);
                     }
                     p2 = p1 = ew->mapTo(this, me->pos());
-                    tmpw = new MovingWidget(this, this);
+		    tmpw = new MovingWidget(this, this);
                     tmpw->show();
 		    tmpw->setGeometry(0, 0, width(), height());
-                    state = MOVING;
+		    tmpw->setAttribute(Qt::WA_TransparentForMouseEvents);
+		    state = MOVING;
                 }
                 else if(o->inherits("PointWidget"))
                 {
@@ -334,7 +342,7 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                         if(selectedFreePoints.find(pw) != selectedFreePoints.end())
                         {
                             p2 = p1 = pw->mapTo(this, me->pos());
-                            tmpw = new MovingWidget(this, this);
+			    tmpw = new MovingWidget(this, this);
                             tmpw->show();
 			    tmpw->setGeometry(0, 0, width(), height());
                             state = MOVING;
@@ -346,7 +354,7 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                         PointWidget *pw = (PointWidget*)o;
 			pw2 = pw1 = (PointWidget*)o;
                         state = LINING;
-                        tmpw = new LiningWidget(this, this);
+			tmpw = new LiningWidget(this, this);
                         tmpw->show();
                         p2 = p1 = toGrid(pw->mapTo(this, me->pos()));
 			tmpw->setGeometry(0, 0, width(), height());
@@ -499,7 +507,7 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
 	    }
 
             if(tmpw)
-                tmpw->deleteLater();
+		tmpw->deleteLater();
             tmpw=0;
 	    update();
 	    state = NONE;
@@ -521,7 +529,7 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                 pw1=0;
             }
             if(tmpw)
-                tmpw->deleteLater();
+		tmpw->deleteLater();
             tmpw=0;
             state = NONE;
         }
@@ -618,7 +626,10 @@ void WorkPanel::contextMenuEvent(QContextMenuEvent *ev)
         {
 	    mn.addAction(acomplex);
 	    if(w->inherits("ElementWidget") && selectedFreePoints.empty() && selected.count() == 1 && (*selected.begin())->e->type() == COMPLEX)
+	    {
 		mn.addAction(alibrary);
+		mn.addAction(abuildtable);
+	    }
         }
 
 	mn.exec(ev->globalPos());
@@ -718,7 +729,9 @@ void WorkPanel::setAddingElement(Element *e)
 
 AddingWidget::AddingWidget(QWidget *parent, WorkPanel*wp, int wd, int h, Element*e, bool addp) : QWidget(parent), wp(wp), width(wd), height(h), addingPoint(addp)
 {
+    qWarning("Adding created");
     setMouseTracking(1);
+    setAcceptDrops(1);
     mouseIn=0;
 
     if(addp)
@@ -737,6 +750,7 @@ AddingWidget::AddingWidget(QWidget *parent, WorkPanel*wp, int wd, int h, Element
 
 void AddingWidget::mouseMoveEvent(QMouseEvent *ev)
 {
+    qWarning("adding move");
     setFocus();
     if(ev->button() != Qt::LeftButton)
     {
@@ -780,10 +794,11 @@ void AddingWidget::mouseReleaseEvent(QMouseEvent *ev)
     }
 }
 
-void AddingWidget::paintEvent(QPaintEvent *)
+void AddingWidget::paintEvent(QPaintEvent *ev)
 {
+    qDebug() << "Adding paint " << ev->rect();
     if(!mouseIn)
-        return;
+	return;
     QPainter p(this);
     QRect rt = tmp->geometry();
     if(!addingPoint)
@@ -945,3 +960,117 @@ void WorkPanel::setSelection(QSet<Element*> els, QSet<int> pts)
     update();
     setFocus();
 }
+
+void WorkPanel::buildTable()
+{
+    if(selected.count() > 1 || selectedFreePoints.count() > 0)
+	return;
+    Element *e = (*selected.begin())->e;
+    if(e->type() != COMPLEX)
+	return;
+    ComplexElement *ce = (ComplexElement*)e;
+    if(ce->in_cnt > 10)
+    {
+	QMessageBox::critical(this, "error", "This element has too many input points to build the truth table");
+	return;
+    }
+    QString fileName = QFileDialog::getSaveFileName(this, "Save file", "", "Locic files (*.lod)");
+    if(fileName != "")
+    {
+	ce->buildTable(fileName);
+    }
+}
+
+void WorkPanel::dragEnterEvent(QDragEnterEvent * ev)
+{
+    qDebug() << ev->dropAction();
+    if(ev->mimeData()->hasFormat("LLogic/element"))
+    {
+	QDomDocument doc;
+	QByteArray ba = ev->mimeData()->data("LLogic/element");
+	if(doc.setContent(ba))
+	{
+	    adding = Element::fromXml(doc.firstChildElement());
+	    if(!adding)
+		return;
+	    if(tmpw)
+	    {
+		tmpw->deleteLater();
+		tmpw = 0;
+	    }
+	    tmpw = new AddingWidget(this, this, 3, 3, adding);
+	    tmpw->setGeometry(0, 0, width(), height());
+	    tmpw->show();
+	    tmpw->setAttribute(Qt::WA_TransparentForMouseEvents);
+	    tmpw->raise();
+	    ev->acceptProposedAction();
+	}
+    }
+}
+
+void WorkPanel::dragLeaveEvent(QDragLeaveEvent *ev)
+{
+    if(adding)
+    {
+	delete adding;
+	adding = 0;
+    }
+    if(tmpw)
+    {
+	tmpw->deleteLater();
+	tmpw = 0;
+    }
+    qWarning("drag leave");
+    ev->accept();
+}
+
+void WorkPanel::dragMoveEvent(QDragMoveEvent *ev)
+{
+    if(tmpw)
+	if(tmpw->inherits("AddingWidget"))
+	{
+	    ((AddingWidget*)tmpw)->pt = ev->pos();
+	    ((AddingWidget*)tmpw)->mouseIn = 1;
+	    tmpw->update();
+	    update();
+	}
+    ev->acceptProposedAction();
+}
+
+void WorkPanel::dropEvent(QDropEvent *ev)
+{
+    if(tmpw)
+    {
+	qWarning("drop");
+	if(!tmpw->inherits("AddingWidget"))
+	{
+	    qWarning("bred");
+	    return;
+	}
+	AddingWidget* aw =  (AddingWidget*)tmpw;
+	if(canMoveTo(aw->tmp, toGrid(aw->pt-QPoint(20, 10)) ))
+	{
+	    QPoint tm = toGrid(aw->pt - QPoint(20, 10));
+	    adding->_view.x = tm.x()/grid_size;
+	    adding->_view.y = tm.y()/grid_size;
+	    d->addElement(adding);
+	}
+	else
+	{
+	    delete adding;
+	}
+	adding = 0;
+
+
+	tmpw->deleteLater();
+	tmpw = 0;
+    }
+    ev->acceptProposedAction();
+}
+
+void AddingWidget::dragEnterEvent(QDragEnterEvent *ev)
+{
+    qWarning("adding drag");
+    ev->ignore();
+}
+

@@ -11,6 +11,11 @@ ComplexElement::ComplexElement(int _in_cnt, int _out_cnt )
     in_cnt = _in_cnt;
     out_cnt = _out_cnt;
 
+    if(in_cnt > 0)
+	in.resize(in_cnt);
+    if(out_cnt > 0)
+	out.resize(out_cnt);
+
     _type = COMPLEX;
 
     _view.height = std::max(in_cnt, out_cnt) + 1;
@@ -221,4 +226,39 @@ void ComplexElement::updateDocumentName()
 {
     QString name = Element::d->name() + "\\" + text;
     d->_name = name;
+}
+
+void ComplexElement::buildTable(QString fileName)
+{
+    ComplexElement *e = (ComplexElement*)clone();
+    if(in_cnt > 10)
+	return;
+    QFile f(fileName);
+    if(!f.open(QFile::WriteOnly))
+	return;
+    for(int i = 0; i < 1<<in_cnt; i++)
+    {
+	qWarning("input %d", i);
+	QPair<int, int> p;
+	QString str = "";
+	for(int j = 0; j < in_cnt; j++)
+	    str += QString::number((i & (1 << j)) != 0) + " ";
+	foreach(p, in_connections)
+	{
+	    e->d->c->set(p.second, (i & (1 << p.first)) != 0);
+	}
+	str += " | ";
+	e->d->c->calculate(1);
+	int out_res = 0;
+	foreach(p, out_connections)
+	{
+	    out_res += (1<<p.second) * e->d->c->get(p.first);
+	}
+	for(int j = 0; j < out_cnt; j++)
+	    str += QString::number((out_res & (1 << j)) != 0) + " ";
+	qWarning("output %d", out_res);
+	f.write(str.toAscii());
+    }
+    f.close();
+    delete e;
 }

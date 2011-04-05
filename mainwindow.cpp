@@ -8,6 +8,7 @@
 #include <QFileDialog>
 #include <QToolButton>
 #include <QSplitter>
+#include <QDebug>
 
 #include "mainwindow.h"
 #include "document.h"
@@ -18,6 +19,31 @@
 #include "elementlibrary.h"
 
 MainWindow* MainWindow::wnd = 0;
+
+QStringList ListItemModel::mimeTypes()
+{
+    QStringList lst;
+    lst.append("LLogic/element");
+    return lst;
+}
+
+QMimeData* ListItemModel::mimeData(const QModelIndexList &indexes) const
+{
+    QMimeData * md = new QMimeData;
+    QDomDocument doc("LLogic");
+    foreach(QModelIndex ind, indexes)
+    {
+	if(ind.isValid())
+	{
+	    Element *e = (Element*)(data(index(ind.row(), 1)).toInt());
+	    doc.appendChild(e->toXml(doc));
+	}
+    }
+    md->setData("LLogic/element", doc.toByteArray());
+
+    return md;
+}
+
 
 void MainWindow::triggered(QAction *act)
 {
@@ -128,18 +154,18 @@ MainWindow::MainWindow(QWidget *parent) :
     leftWidget->setLayout(vb);    
 
     toolBar     = new QToolBar();
-    aand        = new QAction("and",    toolBar);
-    asend       = new QAction("send",   toolBar);
-    arec        = new QAction("rec",    toolBar);
-    aor         = new QAction("or",     toolBar);
-    anot        = new QAction("not",    toolBar);
-    axor        = new QAction("xor",    toolBar);
-    aornot      = new QAction("or-not", toolBar);
-    aandnot     = new QAction("and-not",toolBar);
-    apoint      = new QAction("point",	toolBar);
+    aand        = new QAction(pixmap(":/images/and_icon.png"),"and",    toolBar);
+    asend       = new QAction(pixmap(":/images/send_icon.png"),"send",   toolBar);
+    arec        = new QAction(pixmap(":/images/rec_icon.png"),"rec",    toolBar);
+    aor         = new QAction(pixmap(":/images/or_icon.png"), "or",     toolBar);
+    anot        = new QAction(pixmap(":/images/not_icon.png"), "not",    toolBar);
+    axor        = new QAction(pixmap(":/images/xor_icon.png"), "xor",    toolBar);
+    aornot      = new QAction(pixmap(":/images/ornot_icon.png"), "or-not", toolBar);
+    aandnot     = new QAction(pixmap(":/images/andnot_icon.png"), "and-not",toolBar);
+    apoint      = new QAction(pixmap(":/images/point_icon.png"), "point",	toolBar);
     a8bitsend	= new QAction("8bit->", toolBar);
-    aselect     = new QAction("select", toolBar);
-    aautoCalc   = new QAction("auto",   toolBar);
+    aselect     = new QAction(pixmap(":/images/select_icon.png"), "select", toolBar);
+    aautoCalc   = new QAction(pixmap(":/images/auto_icon.png"), "auto",   toolBar);
 
     QActionGroup *ag = new QActionGroup(toolBar);
 
@@ -218,13 +244,22 @@ MainWindow::MainWindow(QWidget *parent) :
     tabWidget = new TabWidget();
     tabWidget->setMinimumSize(300, 200);
     centralWidget->addWidget(tabWidget);
-    //hb->addWidget(leftWidget);
-    //hb->addWidget(tabWidget);
 
-    listWidget = new QListWidget();
+    listWidget = new QListView();
+    listModel = new ListItemModel(listWidget);
+    listWidget->setModel(listModel);
     listWidget->setContextMenuPolicy(Qt::CustomContextMenu);
 
-    connect(listWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(libraryClicked(QListWidgetItem*)));
+    listWidget->setDragEnabled(1);
+    listWidget->setDropIndicatorShown(0);
+    listWidget->setAcceptDrops(0);
+
+
+
+
+    listWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    connect(listWidget, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(libraryClicked(QModelIndex)));
     connect(listWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(listWidgetMenu(QPoint)));
 
     vb->addWidget(listWidget, 1);
@@ -385,7 +420,7 @@ void MainWindow::toolBarAction(QAction * act)
     if(act->text() == "and")
     {
         documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
-        documents[tabWidget->currentWidget()]->setAddingElement(new AndElement());
+	documents[tabWidget->currentWidget()]->setAddingElement(new AndElement());
     }
     else if(act->text() == "or")
     {
@@ -438,7 +473,10 @@ void MainWindow::toolBarAction(QAction * act)
     else if(act->text() == "auto")
     {
         if(act->isChecked())
+	{
             documents[tabWidget->currentWidget()]->auto_calculation = 1;
+	    documents[tabWidget->currentWidget()]->calcIfNeed();
+	}
         else
             documents[tabWidget->currentWidget()]->auto_calculation = 0;
     }
@@ -468,13 +506,13 @@ void MainWindow::newDocument()
     showDocument(d);
 }
 
-void MainWindow::libraryClicked(QListWidgetItem *lwi)
+void MainWindow::libraryClicked(QModelIndex ind)
 {
     if(documents.find(tabWidget->currentWidget()) == documents.end())
 	return;
 
     Document *d = documents[tabWidget->currentWidget()];
-    Element *e = d->getLibraryElement(lwi->text());
+    Element *e = d->getLibraryElement(listModel->data(ind).toString());
     if(e)
     {
 	d->setInstrument(Document::ADDELEMENT);
@@ -488,8 +526,16 @@ void MainWindow::libraryChanged()
 	return;
     Document *d = documents[tabWidget->currentWidget()];
 
-    listWidget->clear();
-    listWidget->addItems(d->libraryNames());
+    QStringList lst = d->libraryNames();
+    listModel->removeRows(0, listModel->rowCount());
+    listModel->insertRows(0, lst.count());
+    for(int i = 0; i < lst.count(); i++)
+    {
+	listModel->setData(listModel->index(i, 0), QVariant(lst.at(i)));//, Qt::DisplayRole);
+	Element *e = d->getLibraryElement(lst.at(i));
+	listModel->setData(listModel->index(i, 1), QVariant((int)e));//, Qt::DisplayRole);
+    }
+
 }
 
 void MainWindow::listWidgetMenu(QPoint pt)
@@ -505,10 +551,10 @@ void MainWindow::removeFromLibrary()
 {
     if(documents.find(tabWidget->currentWidget()) == documents.end())
 	return;
-    if(!listWidget->currentItem())
+    if(listModel->data(listWidget->currentIndex()).isNull())
 	return;
     Document *d = documents[tabWidget->currentWidget()];
-    d->removeLibraryElement(listWidget->currentItem()->text());
+    d->removeLibraryElement(listModel->data(listWidget->currentIndex()).toString());
 }
 
 void MainWindow::tabChanged(int)
@@ -529,4 +575,11 @@ void MainWindow::closeEvent(QCloseEvent *ev)
 	if(res == QMessageBox::Cancel)
 	    ev->ignore();
     }
+}
+
+QPixmap MainWindow::pixmap(QString str)
+{
+    if(pix.find(str) == pix.end())
+	pix[str] = QPixmap(str);
+    return pix[str];
 }

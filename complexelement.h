@@ -39,6 +39,8 @@ class ComplexElement : public Element
         bool parseInputConnections(QDomElement d_el);
         bool parseOutputConnections(QDomElement d_el);
 
+	void buildTable(QString fileName);
+
         void updateDocumentName();
 };
 

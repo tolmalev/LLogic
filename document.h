@@ -107,6 +107,7 @@ public:
 
     void setUnchanged();
 
+    QMimeData *toMimeData(QSet<Element *> elements, QSet<int> points);
     void addToClipboard(QSet<Element*> elements, QSet<int> points);
     void addFromClipboard();
 

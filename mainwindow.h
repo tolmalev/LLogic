@@ -14,6 +14,16 @@
 #include <QListWidget>
 #include <QMap>
 #include <QMessageBox>
+#include <QStandardItemModel>
+
+class ListItemModel : public QStandardItemModel {
+    Q_OBJECT
+
+    public:
+	ListItemModel(QObject *p) : QStandardItemModel(0, 2, p){};
+	QStringList mimeTypes();
+	QMimeData *mimeData(const QModelIndexList &indexes) const;
+};
 
 class MainWindow : public QMainWindow
 {
@@ -27,15 +37,18 @@ public:
 
     void showDocument(Document*);
     void newDocument();
+    static MainWindow *wnd;
+    QMap<QString,QPixmap> pix;
+
+    QPixmap pixmap(QString);
 protected:
     QToolBar    *toolBar;
     TabWidget  *tabWidget;
     QMenuBar    *menuBar;
-    QListWidget *listWidget;
+    QListView	*listWidget;
+    ListItemModel * listModel;
     QMap<Document*, QWidget*>       widgets;
     QMap<QWidget*, Document*>       documents;
-
-    static MainWindow *wnd;
 
 
     int instrument;
@@ -79,7 +92,7 @@ public slots:
     void triggered(QAction*);
     void toolBarAction(QAction*);
     void instrumentChanged();
-    void libraryClicked(QListWidgetItem*);
+    void libraryClicked(QModelIndex);
     void documentChanged(Document *d);
     void libraryChanged();
     void listWidgetMenu(QPoint);

@@ -2,5 +2,16 @@
     <qresource prefix="/images">
         <file>background.png</file>
         <file>element_background.png</file>
+        <file>and_icon.png</file>
+        <file>not_icon.png</file>
+        <file>andnot_icon.png</file>
+        <file>or_icon.png</file>
+        <file>ornot_icon.png</file>
+        <file>xor_icon.png</file>
+        <file>rec_icon.png</file>
+        <file>send_icon.png</file>
+        <file>point_icon.png</file>
+        <file>auto_icon.png</file>
+        <file>select_icon.png</file>
     </qresource>
 </RCC>

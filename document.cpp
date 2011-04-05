@@ -399,7 +399,11 @@ bool Document::canConnect(int id1, int id2)
 void Document::calcIfNeed()
 {
     if(auto_calculation)
+    {
         c->calculate();
+	if(panel)
+	    panel->update();
+    }
 }
 
 void Document::removePoint(int id)
@@ -675,13 +679,18 @@ QDomElement Document::selectionToXml(QDomDocument doc, QSet<Element *> elements,
     return el;
 }
 
-void Document::addToClipboard(QSet<Element *> elements, QSet<int> points)
+QMimeData* Document::toMimeData(QSet<Element *> elements, QSet<int> points)
 {
     QMimeData *d = new QMimeData;
     QDomDocument doc("LDocument");
     doc.appendChild(selectionToXml(doc, elements, points));
     d->setData("LLogic/selection", doc.toByteArray());
-    qApp->clipboard()->setMimeData(d);
+    return d;
+}
+
+void Document::addToClipboard(QSet<Element *> elements, QSet<int> points)
+{
+    qApp->clipboard()->setMimeData(toMimeData(elements, points));
 }
 
 void Document::addFromClipboard()

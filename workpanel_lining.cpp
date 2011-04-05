@@ -6,14 +6,14 @@
 #include "controller.h"
 
 #include <QPainter>
-
 void WorkPanel::calculateLines()
 {
-
 }
 
 void WorkPanel::drawLines(QPainter &painter)
 {
+
+
     if(d != 0)
     foreach(int k, d->c->connections.keys())
     {
@@ -30,4 +30,5 @@ void WorkPanel::drawLines(QPainter &painter)
 	    }
 	}
     }
+
 }

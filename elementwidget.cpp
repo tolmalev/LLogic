@@ -3,6 +3,7 @@
 #include "math.h"
 #include "element.h"
 #include "simpleelements.h"
+#include "mainwindow.h"
 #include <QPainter>
 #include <QGraphicsTextItem>
 #include <QLineEdit>
@@ -66,10 +67,11 @@ void ElementWidget::paintEvent(QPaintEvent *event)
         painter.drawLine(w-1-grid_size, y, w-1, y);
     }
 
-    if(e->type() != COMPLEX)
+    //if(e->type() != COMPLEX)
     {
-	painter.setFont(QFont("Arial", 11));
-	painter.drawText(13, 17, e->text);
+	QRect rt(grid_size, 2, w-1-grid_size*2, h-5);
+	painter.setFont(QFont("Arial", 10));
+	painter.drawText(rt, Qt::AlignCenter | Qt::TextWrapAnywhere, e->text);
     }
     event->accept();
 }
@@ -126,7 +128,7 @@ void SendElementWidget::paintEvent(QPaintEvent *event)
     int w = geometry().width();
     int h = geometry().height();
 
-    QPixmap p(":/images/element_background.png");
+    QPixmap p = MainWindow::wnd->pixmap(":/images/element_background.png");
     painter.setPen(QColor(132, 2, 4));
     painter.fillRect(0, 0, w-1-grid_size, h-1, p);
     painter.drawRect(0, 0, w-1-grid_size, h-1);
@@ -168,7 +170,7 @@ void ReceiveElementWidget::paintEvent(QPaintEvent *event)
     int w = geometry().width();
     int h = geometry().height();
 
-    QPixmap p(":/images/element_background.png");
+    QPixmap p = MainWindow::wnd->pixmap(":/images/element_background.png");
     painter.setPen(QColor(132, 2, 4));
     painter.fillRect(grid_size, 0, w-1-grid_size, h-1, p);
     painter.drawRect(grid_size, 0, w-1-grid_size, h-1);

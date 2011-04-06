@@ -11,6 +11,7 @@
 
 Document::Document(int _type, ComplexElement*el, QObject *parent) : QObject(parent), ce(el),_document_type(_type)
 {
+    now_change = changes.begin();
     c = new Controller();
     connect(c, SIGNAL(timeout(Controller*)), this, SLOT(timeout(Controller*)));
     connect(c, SIGNAL(calculation_finished(int)), this, SIGNAL(calculation_finished(int)));
@@ -29,7 +30,7 @@ void Document::timeout(Controller *_c)
     emit timeout(this);
 }
 
-void Document::addElement(Element *e)
+void Document::addElement(Element *e, bool save)
 {
     e->setController(c);
     e->d = this;
@@ -40,15 +41,34 @@ void Document::addElement(Element *e)
     changed();
     if(e->type() == COMPLEX)
 	connect(((ComplexElement*)e)->d, SIGNAL(documentChanged(Document*)), this, SLOT(changed()));
+
+    if(save)
+    {
+	QSet<Element*> els;
+	els.insert(e);
+	QMap<int, QPoint> pts;
+	QList<QPair<int, int> >con;
+	ElementsChange *ch = new ElementsChange(this, els, pts, con, 1);
+	addChange(ch);
+    }
 }
 
-int Document::addPoint(QPoint pos, int p)
+int Document::addPoint(QPoint pos, int p, bool save)
 {
     p = c->new_point(p);
     freePoints[p] = pos;
     if(panel)
         panel->addPoint(p, pos);
     changed();
+    if(save)
+    {
+	QSet<Element*> els;
+	QMap<int, QPoint> pts;
+	pts[p] = pos;
+	QList<QPair<int, int> >con;
+	ElementsChange *ch = new ElementsChange(this, els, pts, con, 1);
+	addChange(ch);
+    }
     return p;
 }
 
@@ -154,7 +174,7 @@ Document::~Document()
         delete library;
 }
 
-int Document::addConnection(int id1, int id2)
+int Document::addConnection(int id1, int id2, bool save)
 {
     int res = c->add_connection(id1, id2);
     if(res == 0 && auto_calculation)
@@ -163,6 +183,11 @@ int Document::addConnection(int id1, int id2)
         if(panel)
             panel->update();
         changed();
+    }
+    if(save)
+    {
+	ConnectionsChange *ch = new ConnectionsChange(this, id1, id2, 1);
+	addChange(ch);
     }
     return res;
 }
@@ -519,7 +544,7 @@ void Document::createComplex(QSet<Element *> elements, QList<int> points)
         foreach(int id, *c->connections[i])
         {
             if(ce->d->addConnection(i, id) == 0)
-                c->remove_connection(i, id);
+		c->remove_connection(i, id);
         }
     }
 
@@ -612,9 +637,14 @@ int Document::removeLibraryElement(QString name)
 
 }
 
-void Document::removeConnection(int id1, int id2)
+void Document::removeConnection(int id1, int id2, bool save)
 {
-    c->remove_connection(id1, id2);
+    QSet<QPair<int, int> > cons = c->remove_connection(id1, id2);
+    if(save)
+    {
+	ConnectionsChange *ch = new ConnectionsChange(this, cons.toList(), 0);
+	addChange(ch);
+    }
     changed();
 }
 
@@ -767,5 +797,249 @@ void Document::addFromClipboard()
 	}
 	if(panel)
 	    panel->setSelection(els, points);
+    }
+}
+
+
+bool Document::canUndo()
+{
+    return now_change != changes.end();
+}
+
+bool Document::canRedo()
+{
+    return now_change != changes.begin();
+}
+
+void Document::undo()
+{
+    if(!canUndo())
+	return;
+    qWarning("undo");
+    (*now_change)->undo();
+    now_change++;
+    if(panel)
+	panel->update();
+}
+
+void Document::redo()
+{
+    if(!canRedo())
+	return;
+    qWarning("redo");
+    now_change--;
+    (*now_change)->redo();
+    if(panel)
+	panel->update();
+}
+
+void Document::addChange(DocumentChange *ch)
+{
+    while(now_change != changes.begin())
+    {
+	delete changes.first();
+	changes.pop_front();
+    }
+    changes.push_front(ch);
+    now_change = changes.begin();
+}
+
+ConnectionsChange::ConnectionsChange(Document *d, int from, int to, bool add) : DocumentChange(d)
+{
+    QPair<int, int> p(from, to);
+    con.push_back(p);
+    this->add = add;
+}
+
+void ConnectionsChange::undo()
+{
+    if(add)
+	removeConnections();
+    else
+	addConnections();
+}
+
+void ConnectionsChange::redo()
+{
+    if(add)
+	addConnections();
+    else
+	removeConnections();
+}
+
+void ConnectionsChange::addConnections()
+{
+    QPair<int, int>p;
+    foreach(p, con)
+	d->addConnection(p.first, p.second, 0);
+}
+
+void ConnectionsChange::removeConnections()
+{
+    QPair<int, int>p;
+    foreach(p, con)
+    {
+	d->removeConnection(p.first, p.second, 0);
+    }
+}
+
+void MovingChange::undo()
+{
+    d->move(-dr, els, pts, 0);
+}
+
+void MovingChange::redo()
+{
+    d->move(dr, els, pts, 0);
+}
+
+
+ElementsChange::ElementsChange(Document *d, QSet<Element *> els, QMap<int, QPoint> pts, QList<QPair<int, int> > con, bool add) : DocumentChange(d), els(els), pts(pts), add(add)
+{
+    con_ch = new ConnectionsChange(d, con, add);
+}
+
+void ElementsChange::undo()
+{
+    if(add)
+	removeAll();
+    else
+	addAll();
+}
+
+void ElementsChange::redo()
+{
+    if(!add)
+	removeAll();
+    else
+	addAll();
+}
+
+void ElementsChange::addAll()
+{
+    d->add(els, pts, 0);
+    con_ch->addConnections();
+}
+
+void ElementsChange::removeAll()
+{
+    con_ch->removeConnections();
+    d->remove(els, pts.keys().toSet(), 0);
+}
+
+void Document::move(QPoint dr, QSet<Element *> els, QSet<int> pts, bool save)
+{
+    foreach(Element *e, els)
+	moveElement(e, QPoint(e->_view.x + dr.x(), e->_view.y+dr.y()));
+    foreach(int i, pts)
+	moveFreePoint(i, freePoints[i] + dr);
+
+    if(panel)
+	panel->move(dr, els, pts);
+
+    if(save)
+    {
+	MovingChange *ch = new MovingChange(this, dr, els, pts);
+	addChange(ch);
+    }
+}
+
+void Document::clone(QPoint dr, QSet<Element *> els, QSet<int> pts, bool save)
+{
+    QSet<Element*> _els;
+    QMap<int, QPoint> _pts;
+    foreach(Element *e, els)
+    {
+	Element *e1 = e->clone();
+	e1->_view.x += e->_view.x + dr.x();
+	e1->_view.y += e->_view.y + dr.y();
+	addElement(e1, 0);
+	_els.insert(e1);
+    }
+    foreach(int i, pts)
+    {
+	int p = addPoint(freePoints[i] + dr, -1, 0);
+	_pts[p] = freePoints[i] + dr;
+    }
+
+   if(save)
+   {
+       QList<QPair<int, int> > con;
+       ElementsChange *ch = new ElementsChange(this, _els, _pts, con, 1);
+       addChange(ch);
+   }
+}
+
+void Document::remove(QSet<Element *> els, QSet<int> pts, bool save)
+{
+    QMap<int, QPoint> _pts;
+    QList<QPair<int, int> >con;
+    if(panel)
+	panel->remove(els, pts);
+    foreach(Element *e, els)
+    {
+	foreach(int i, e->in)
+	{
+	    foreach(int id, *c->connections[i])
+		con.push_back(QPair<int, int>(i, id));
+	    removePoint(i);
+	}
+	foreach(int i, e->out)
+	{
+	    foreach(int id, *c->connections[i])
+		con.push_back(QPair<int, int>(i, id));
+	    removePoint(i);
+	}
+
+	elements.remove(e);
+	c->removeFromQueue(e);
+    }
+    foreach(int p, pts)
+    {
+	foreach(int id, *c->connections[p])
+	    con.push_back(QPair<int, int>(p, id));
+	_pts[p] = freePoints[p];
+	removePoint(p);
+	freePoints.remove(p);
+    }
+
+    if(save)
+    {
+	ElementsChange *ch = new ElementsChange(this, els, _pts, con, 0);
+	addChange(ch);
+    }
+
+    calcIfNeed();
+}
+
+void Document::add(QSet<Element *> els, QMap<int, QPoint> pts, bool save)
+{
+    foreach(Element *e, els)
+    {
+	foreach(int i, e->in)
+	{
+	    c->new_point(i);
+	    c->connect_element(i, e);
+	}
+	foreach(int i, e->out)
+	{
+	    c->new_point(i);
+	    c->connect_in_element(i, e);
+	}
+	e->c = c;
+	e->d = this;
+	c->queue.push_back(e);
+	elements.insert(e);
+	if(panel != 0)
+	    panel->addElement(e);
+    }
+    foreach(int i, pts.keys())
+	addPoint(pts[i], i, 0);
+
+    if(save)
+    {
+	QList<QPair<int, int> >con;
+	ElementsChange *ch = new ElementsChange(this, els, pts, con, 1);
+	addChange(ch);
     }
 }

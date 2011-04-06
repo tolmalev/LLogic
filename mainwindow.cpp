@@ -9,6 +9,8 @@
 #include <QToolButton>
 #include <QSplitter>
 #include <QDebug>
+#include <QTemporaryFile>
+#include <QUrl>
 
 #include "mainwindow.h"
 #include "document.h"
@@ -40,6 +42,16 @@ QMimeData* ListItemModel::mimeData(const QModelIndexList &indexes) const
 	}
     }
     md->setData("LLogic/element", doc.toByteArray());
+    QTemporaryFile *tmp = new QTemporaryFile();
+    tmp->open();
+    tmp->write(doc.toByteArray());
+    tmp->close();
+    qDebug() << tmp->fileName();
+    QList<QUrl> urls;
+    urls.push_back(QUrl(tmp->fileName()));
+    md->setUrls(urls);
+
+    qDebug() << md->data("text/uri-list");
 
     return md;
 }
@@ -129,6 +141,14 @@ void MainWindow::triggered(QAction *act)
 		QMessageBox::critical(this, "error", "Can't read document from " + fileName);
 	    }
 	}
+    }
+    else if(act->text() == "Undo")
+    {
+	d->undo();
+    }
+    else if(act->text() == "Redo")
+    {
+	d->redo();
     }
 }
 
@@ -220,6 +240,15 @@ MainWindow::MainWindow(QWidget *parent) :
     saveas->setShortcut(QKeySequence("Ctrl+Shift+S"));
     QAction *newdoc = new QAction("New", this);
     newdoc->setShortcut(QKeySequence::New);
+
+    QMenu *edit = menuBar->addMenu("Edit");
+    QAction *undo = new QAction("Undo", this);
+    undo->setShortcut(QKeySequence::Undo);
+
+    QAction *redo = new QAction("Redo", this);
+    redo->setShortcut(QKeySequence::Redo);
+    edit->addAction(undo);
+    edit->addAction(redo);
 
     file->addAction(op);
     file->addSeparator();

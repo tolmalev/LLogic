@@ -470,38 +470,25 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
                 }
 
                 if(can)
-                {
-                    foreach(ElementWidget *ew, selected)
-                    {
-			if(!shift)
-			{
-			    ew->move(toGrid(ew->pos() + p2 - p1));
-			    QPoint pos(ew->geometry().x()/grid_size, ew->geometry().y()/grid_size);
-			    d->moveElement(ew->e, pos);
-			}
-			else
-			{
-			    Element *e = ew->e->clone();
-			    QPoint pos = toGrid(  ew->geometry().topLeft() + p2 -p1  );
-			    e->_view.x = pos.x()/grid_size;
-			    e->_view.y = pos.y()/grid_size;
-			    d->addElement(e);
-			}
-                    }
-                    foreach(PointWidget *pw, selectedFreePoints)
-                    {
-			if(!shift)
-			{
-			    pw->move(toGrid(pw->pos()+QPoint(2,2) + p2-p1)-QPoint(2,2));
-			    QPoint pos((pw->geometry().x()+2)/grid_size, (pw->geometry().y()+2)/grid_size);
-			    d->moveFreePoint(pw->point, pos);
-			}
-			else
-			{
-			    QPoint pos = toGrid(pw->pos()+QPoint(2,2) + p2-p1);
-			    d->addPoint(QPoint(pos.x()/grid_size, pos.y()/grid_size   ));
-			}
-                    }
+		{
+		    QSet<Element*> els;
+		    QSet<int> pts;
+		    QPoint dr;
+		    foreach(ElementWidget *ew, selected)
+		    {
+			els.insert(ew->e);
+			dr = toGrid(  ew->geometry().topLeft() + p2 -p1) - ew->pos();
+		    }
+		    foreach(PointWidget *pw, selectedFreePoints)
+		    {
+			pts.insert(pw->point);
+			dr = toGrid(  pw->geometry().topLeft() + QPoint(2,2)+ p2 -p1) - pw->pos() - QPoint(2,2);
+		    }
+		    dr /= grid_size;
+		    if(!shift)
+			d->move(dr, els, pts);
+		    else
+			d->clone(dr, els, pts);
 		    updateMinimumSize();
                 }
 	    }
@@ -653,44 +640,16 @@ void WorkPanel::keyPressEvent(QKeyEvent * ev)
 {
     if(ev->key() == Qt::Key_Delete)
     {
-        foreach(ElementWidget *ew, selected)
-        {
-            Element *e = ew->e;
-            foreach(int i, e->in)
-            {
-                d->removePoint(i);
-                points[i]->deleteLater();
-                points.remove(i);
-            }
-            foreach(int i, e->out)
-            {
-                d->removePoint(i);
-                points[i]->deleteLater();
-                points.remove(i);
-            }
+	QSet<Element*> els;
+	QSet<int> pts;
+	foreach(ElementWidget *ew, selected)
+	    els.insert(ew->e);
+	foreach(PointWidget *pw, selectedFreePoints)
+	    pts.insert(pw->point);
+	d->remove(els, pts);
 
-            d->elements.remove(e);
-            d->c->removeFromQueue(e);
-            elementWidgets.remove(ew);
-            ew->deleteLater();
-            delete e;
-        }
-        foreach(PointWidget *pw, selectedFreePoints)
-        {
-            points.remove(pw->point);
-            d->removePoint(pw->point);
-            freePoints.remove(pw);
-
-            pw->deleteLater();
-            d->freePoints.remove(pw->point);
-        }
-
-        selected.clear();
-        selectedFreePoints.clear();
-        d->calcIfNeed();
-
-	calculateLines();
-        update();
+	selected.clear();
+	selectedFreePoints.clear();
     }
     else if(ev->key() == Qt::Key_C)
     {
@@ -744,13 +703,10 @@ AddingWidget::AddingWidget(QWidget *parent, WorkPanel*wp, int wd, int h, Element
         ((ElementWidget*)tmp)->setElement(e);
         ((ElementWidget*)tmp)->updateSize();
     }
-    //grabKeyboard();
-    //setFocusPolicy(Qt::ClickFocus);
 }
 
 void AddingWidget::mouseMoveEvent(QMouseEvent *ev)
 {
-    qWarning("adding move");
     setFocus();
     if(ev->button() != Qt::LeftButton)
     {
@@ -796,7 +752,6 @@ void AddingWidget::mouseReleaseEvent(QMouseEvent *ev)
 
 void AddingWidget::paintEvent(QPaintEvent *ev)
 {
-    qDebug() << "Adding paint " << ev->rect();
     if(!mouseIn)
 	return;
     QPainter p(this);
@@ -983,7 +938,7 @@ void WorkPanel::buildTable()
 
 void WorkPanel::dragEnterEvent(QDragEnterEvent * ev)
 {
-    qDebug() << ev->dropAction();
+    qDebug() << ev->mimeData()->data("text/uri-list");
     if(ev->mimeData()->hasFormat("LLogic/element"))
     {
 	QDomDocument doc;
@@ -1074,3 +1029,44 @@ void AddingWidget::dragEnterEvent(QDragEnterEvent *ev)
     ev->ignore();
 }
 
+void WorkPanel::move(QPoint dr, QSet<Element *> els, QSet<int> pts)
+{
+    foreach(int i, pts)
+	points[i]->move(dr*grid_size + points[i]->pos());
+    foreach(ElementWidget *ew, elementWidgets)
+	if(els.find(ew->e) != els.end())
+	    ew->move(ew->pos() + dr*grid_size);
+}
+
+void WorkPanel::remove(QSet<Element *> els, QSet<int> pts)
+{
+    foreach(int i, pts)
+    {
+	selectedFreePoints.remove(points[i]);
+	PointWidget *pw = points[i];
+	points.remove(i);
+	freePoints.remove(pw);
+	pw->deleteLater();
+    }
+    foreach(ElementWidget *ew, elementWidgets)
+	if(els.find(ew->e) != els.end())
+	{
+	    selected.remove(ew);
+	    Element *e = ew->e;
+	    foreach(int i, e->in)
+	    {
+		points[i]->deleteLater();
+		points.remove(i);
+	    }
+	    foreach(int i, e->out)
+	    {
+		points[i]->deleteLater();
+		points.remove(i);
+	    }
+	    elementWidgets.remove(ew);
+	    ew->deleteLater();
+	}
+
+    calculateLines();
+    update();
+}

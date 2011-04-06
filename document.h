@@ -14,6 +14,57 @@
 
 #include "classes.h"
 
+class DocumentChange{
+    protected:
+	Document *d;
+    public:
+	DocumentChange(Document *d) : d(d){}
+	virtual void undo() = 0;
+	virtual void redo() = 0;
+};
+
+class ConnectionsChange : public DocumentChange{
+
+    friend class ElementsChange;
+    protected:
+	QList<QPair<int, int> > con;
+	bool add;
+	void addConnections();
+	void removeConnections();
+    public:
+	ConnectionsChange(Document *d, QList<QPair<int, int> > con, bool add) : DocumentChange(d), con(con), add(add){};
+	ConnectionsChange(Document *d, int from, int to, bool add);
+
+	void undo();
+	void redo();
+};
+
+class ElementsChange : public DocumentChange{
+
+	QSet<Element*>	els;
+	QMap<int, QPoint> pts;
+	ConnectionsChange *con_ch;
+	bool add;
+
+	void removeAll();
+	void addAll();
+    public:
+	ElementsChange(Document *d, QSet<Element*> els, QMap<int, QPoint> pts, QList<QPair<int, int> > con, bool add);
+
+	void undo();
+	void redo();
+};
+
+class MovingChange : public DocumentChange{
+	QPoint dr;
+	QSet<Element*> els;
+	QSet<int> pts;
+    public:
+	MovingChange(Document *d, QPoint dr, QSet<Element*> els, QSet<int> pts) : DocumentChange(d), dr(dr), els(els), pts(pts){};
+	void undo();
+	void redo();
+};
+
 
 class Document : public QObject
 {
@@ -24,6 +75,9 @@ class Document : public QObject
     friend class LibraryElement;
     friend class MainWindow;
 protected:
+    QList<DocumentChange*> changes;
+    QList<DocumentChange*>::iterator now_change;
+
     Controller          *c;
     ComplexElement      *ce;
     ElementLibrary      *library;
@@ -80,12 +134,16 @@ public:
 
     virtual Document * clone();
 
-    int     addConnection(int id1, int id2);
-    void    removeConnection(int id1, int id2);
+    int     addConnection(int id1, int id2, bool save = 1);
+    void    removeConnection(int id1, int id2, bool save = 1);
     bool    canConnect(int id1, int id2);
     void    removePoint(int id);
     void    moveElement(Element *e, QPoint pos);
     void    moveFreePoint(int p, QPoint pos);
+    void    move(QPoint dr, QSet<Element*> els, QSet<int> pts, bool save = 1);
+    void    clone(QPoint dr, QSet<Element*> els, QSet<int> pts, bool save = 1);
+    void    remove(QSet<Element*>els, QSet<int> pts, bool save = 1);
+    void    add(QSet<Element*>els, QMap<int, QPoint> pts, bool save =1);
 
     void    calcIfNeed();
 
@@ -111,6 +169,12 @@ public:
     void addToClipboard(QSet<Element*> elements, QSet<int> points);
     void addFromClipboard();
 
+    bool canUndo();
+    bool canRedo();
+    void undo();
+    void redo();
+    void addChange(DocumentChange *ch);
+
 signals:
     void timeout(Document*);
     void calculation_finished(int);
@@ -122,8 +186,8 @@ signals:
 public slots:
     void timeout(Controller*c);
     void needCalculation(Element*);
-    void addElement(Element* e);
-    int	 addPoint(QPoint pos, int p=-1);
+    void addElement(Element* e, bool save = 1);
+    int	 addPoint(QPoint pos, int p=-1, bool save = 1);
 };
 
 #endif // DOCUMENT_H

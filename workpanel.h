@@ -134,6 +134,8 @@ public:
     void dropEvent(QDropEvent *);
 
     void setSelection(QSet<Element*>, QSet<int> points);
+    void move(QPoint dr, QSet<Element*> els, QSet<int> pts);
+    void remove(QSet<Element *> els, QSet<int> pts);
 
     bool eventFilter(QObject *o, QEvent *e);
 

@@ -249,15 +249,17 @@ void Controller::removeFromQueue(Element *e)
         queue.removeOne(e);
 }
 
-void Controller::remove_connection(int id1, int id2)
+QSet<QPair<int, int> > Controller::remove_connection(int id1, int id2)
 {
+    QSet<QPair<int, int> > res;
     if(value.find(id1) == value.end() || value.find(id2) == value.end())
-        return;
+	return res;
     if(id1 == id2)
     {
         foreach(int i, *connections[id1])
         {
             connections[i]->removeOne(id1);
+	    res.insert(QPair<int, int>(id1, i));
         }
         connections[id1]->clear();
     }
@@ -265,5 +267,7 @@ void Controller::remove_connection(int id1, int id2)
     {
         connections[id1]->removeOne(id2);
         connections[id2]->removeOne(id1);
+	res.insert(QPair<int, int>(id1, id2));
     }
+    return res;
 }

@@ -56,7 +56,7 @@ class Controller : public QObject
         int     add_connection(int id1, int id2);
         bool    canConnect(int id1, int id2);
 
-        void    remove_connection(int id1, int id2);
+	QSet<QPair<int, int> >    remove_connection(int id1, int id2);
 
         void    removeFromQueue(Element *e);
 

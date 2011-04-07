@@ -188,6 +188,7 @@ MainWindow::MainWindow(QWidget *parent) :
     a8bitsend	= new QAction("8bit->", toolBar);
     a8bitrec	= new QAction("->8bit", toolBar);
     asegment	= new QAction(pixmap(":/images/segment_icon.png"), "segment", toolBar);
+    aif		= new QAction(pixmap(":/images/if_icon.png"), "if", toolBar);
     aselect     = new QAction(pixmap(":/images/select_icon.png"), "select", toolBar);
     aautoCalc   = new QAction(pixmap(":/images/auto_icon.png"), "auto",   toolBar);
 
@@ -207,6 +208,7 @@ MainWindow::MainWindow(QWidget *parent) :
     a8bitsend->setCheckable(1);
     a8bitrec->setCheckable(1);
     asegment->setCheckable(1);
+    aif->setCheckable(1);
 
     aselect->setChecked(1);
     aautoCalc->setChecked(1);
@@ -224,6 +226,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ag->addAction(a8bitsend);
     ag->addAction(a8bitrec);
     ag->addAction(asegment);
+    ag->addAction(aif);
 
     toolBar->addActions(ag->actions());
     toolBar->addSeparator();
@@ -478,6 +481,11 @@ void MainWindow::toolBarAction(QAction * act)
     {
 	documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
 	documents[tabWidget->currentWidget()]->setAddingElement(new SegmentElement);
+    }
+    else if(act->text() == "if")
+    {
+	documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
+	documents[tabWidget->currentWidget()]->setAddingElement(new IfElement);
     }
     else if(act->text() == "xor")
     {

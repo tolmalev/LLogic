@@ -66,9 +66,8 @@ class ReceiveElementWidget : public ElementWidget{
 
 class NumberSendElement8Widget : public ElementWidget{
     Q_OBJECT
-
     QLineEdit *lineEdit;
-
+	void recalc(QString s);
     public:
 	explicit NumberSendElement8Widget(QWidget *parent = 0) : ElementWidget(parent){lineEdit = 0;};
 	virtual void updateSize();
@@ -78,6 +77,23 @@ class NumberSendElement8Widget : public ElementWidget{
     public slots:
 	void numberChanged();
 };
+
+class IfElementWidget : public ElementWidget{
+    Q_OBJECT
+
+    QLineEdit *lineEdit;
+
+    QString text;
+	void recalc(QString s);
+    public:
+	explicit IfElementWidget(QWidget *parent = 0) : ElementWidget(parent){lineEdit = 0;text="";};
+	virtual void paintEvent ( QPaintEvent * event );
+
+	void mouseDoubleClickEvent(QMouseEvent *);
+    public slots:
+	void numberChanged();
+};
+
 
 class NumberRecieveElement8Widget : public ElementWidget{
     Q_OBJECT

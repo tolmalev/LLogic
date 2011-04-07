@@ -22,6 +22,7 @@ enum elementTypes{
     NUMSEND,
     NUMRECIEVE,
     SEGMENT,
+    IF,
 };
 
 QString typeString(int type);
@@ -38,6 +39,7 @@ class Element : public QObject
 
     friend class NumberSendElement8Widget;
     friend class NumberRecieveElement8Widget;
+    friend class IfElementWidget;
     friend class SegmentElementWidget;
 
     protected:

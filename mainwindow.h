@@ -77,6 +77,7 @@ protected:
     QAction *a8bitrec;
     QAction *asegment;
     QAction *arec;
+    QAction *aif;
     QAction *aautoCalc;
 
     QAction *adeleteLibrary;

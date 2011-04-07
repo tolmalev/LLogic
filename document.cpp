@@ -166,6 +166,7 @@ void Document::needCalculation(Element *e)
         if(panel)
             workPanel()->update();
     }
+    changed();
 }
 
 Document::~Document()
@@ -698,6 +699,7 @@ QDomElement Document::selectionToXml(QDomDocument doc, QSet<Element *> elements,
     {
 	foreach(int i, *c->connections[id])
 	{
+	    if(pts.find(i) != pts.end())
 	    if(id > i)
 	    {
 		QDomElement connection = doc.createElement("connection");
@@ -970,8 +972,8 @@ void Document::clone(QPoint dr, QSet<Element *> els, QSet<int> pts, bool save)
     foreach(Element *e, els)
     {
 	Element *e1 = e->clone();
-	e1->_view.x += e->_view.x + dr.x();
-	e1->_view.y += e->_view.y + dr.y();
+	e1->_view.x = e->_view.x + dr.x();
+	e1->_view.y = e->_view.y + dr.y();
 	addElement(e1, 0);
 	_els.insert(e1);
     }

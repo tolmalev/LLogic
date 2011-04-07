@@ -6,6 +6,40 @@
 
 Element* SimpleElement(int type);
 
+class IfElement : public Element
+{
+    friend class IfElementWidget;
+	int type;
+	enum types{
+	    G,
+	    L,
+	    E,
+	};
+	int num;
+    public:
+	void update()
+	{
+	    QString n=text;
+	    bool ok = 0;
+	    int nn = n.mid(1).toInt(&ok);
+	    if(n[0] == '>')
+		type = 0;
+	    else if(n[0] == '<')
+		type = 1;
+	    else if(n[0] == '=')
+		type = 2;
+	    if(nn < -1)
+		nn = -1;
+	    if(nn > 256)
+		nn = 256;
+	    num = nn;
+	}
+
+	IfElement() : Element(0, 8, 1, IF, "=0"), type(E), num(0){};
+	virtual void recalc();
+	virtual Element*clone();
+};
+
 class SegmentElement : public Element
 {
     friend class SegmentElementWidget;
@@ -21,7 +55,14 @@ class NumberSendElement8 : public Element
     friend class NumberSendElement8Widget;
 	int num;
     public:
-	NumberSendElement8() : Element(0, 0, 8, NUMSEND), num(0){};
+	void update()
+	{
+	    QString n=text;
+	    bool ok = 0;
+	    int nn = n.toInt(&ok);
+	    num = nn;
+	}
+	NumberSendElement8() : Element(0, 0, 8, NUMSEND, "0"), num(-1){};
 	virtual void recalc();
 	virtual Element*clone();
 };

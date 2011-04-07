@@ -299,6 +299,8 @@ void NumberSendElement8Widget::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
     NumberSendElement8* el = (NumberSendElement8*)e;
+    if(el->num < 0)
+	recalc(el->text);
 
     int w = geometry().width();
     int h = geometry().height();
@@ -345,9 +347,33 @@ void NumberRecieveElement8Widget::paintEvent(QPaintEvent *event)
     event->accept();
 }
 
+void IfElementWidget::paintEvent(QPaintEvent *event)
+{
+    if(text == "")
+	recalc(e->text);
+    e->text = "";
+    ElementWidget::paintEvent(event);
+    e->text = text;
+    QPainter painter(this);
+
+    int w = geometry().width();
+    int h = geometry().height();
+
+    painter.setPen(QColor(132, 2, 4));
+    painter.setFont(QFont("Arial", 12));
+    QRect rt(grid_size+2, 2, w-5-2*grid_size, h-3);
+    painter.drawText(rt, Qt::AlignCenter, text);
+
+    event->accept();
+}
+
 void NumberSendElement8Widget::numberChanged()
 {
-    QString n = lineEdit->text();
+    recalc(lineEdit->text());
+}
+
+void NumberSendElement8Widget::recalc(QString n)
+{    
     bool ok = 0;
     int nn = n.toInt(&ok);
     if(!ok)
@@ -357,8 +383,54 @@ void NumberSendElement8Widget::numberChanged()
     if(nn > 255)
 	nn = 255;
     ((NumberSendElement8*)e)->num = nn;
-    e->text = ""+nn;
+    e->text = n;
     emit needCalculation(e);
     lineEdit->deleteLater();
     lineEdit = 0;
+}
+
+void IfElementWidget::numberChanged()
+{
+    recalc(lineEdit->text());
+}
+
+void IfElementWidget::recalc(QString n)
+{
+    bool ok = 0;
+    int nn = n.mid(1).toInt(&ok);
+    if(!ok)
+	return;
+    int tp = -1;
+    if(n[0] == '>')
+	tp = 0;
+    else if(n[0] == '<')
+	tp = 1;
+    else if(n[0] == '=')
+	tp = 2;
+    if(tp < 0)
+	return;
+    text = n;
+    if(nn < -1)
+	nn = -1;
+    if(nn > 256)
+	nn = 256;
+    ((IfElement*)e)->num = nn;
+    ((IfElement*)e)->type = tp;
+    e->text = n;
+    emit needCalculation(e);
+    lineEdit->deleteLater();
+    lineEdit = 0;
+}
+
+void IfElementWidget::mouseDoubleClickEvent(QMouseEvent *ev)
+{
+    if(lineEdit == 0)
+    {
+	lineEdit = new QLineEdit(text, this);
+	lineEdit->selectAll();
+	connect(lineEdit, SIGNAL(editingFinished ()), this, SLOT(numberChanged()));
+	lineEdit->show();
+    }
+    lineEdit->setFocus();
+    ev->accept();
 }

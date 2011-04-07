@@ -144,12 +144,19 @@ Element * Element::fromXml(QDomElement d_el, Document*d)
 	el = new NumberSendElement8();
     else if(type == "8bitrecieve")
 	el = new NumberRecieveElement8();
+    else if(type == "if")
+	el = new IfElement();
     else if(type == "segment")
 	el = new SegmentElement();
     else if(type == "complex")
 	return ComplexElement::fromXml(d_el);
 
     QDomElement ch_e = d_el.firstChildElement();
+    el->text = d_el.attribute("text", "");
+    if(el->type() == NUMSEND)
+	((NumberSendElement8*)el)->update();
+    if(el->type() == IF)
+	((IfElement*)el)->update();
     bool view_ok  = 0;
     bool input_points_ok = 0;
     bool output_points_ok = 0;
@@ -195,6 +202,7 @@ QString typeString(int type)
 	case NUMSEND:	return "8bitsend";
 	case NUMRECIEVE:return "8bitrecieve";
 	case SEGMENT:	return "segment";
+	case IF:	return "if";
     }
     return "";
 }
@@ -239,6 +247,7 @@ QDomElement Element::toXml(QDomDocument doc)
 {
     QDomElement result = doc.createElement("element");
     result.setAttribute("type", typeString(_type));
+    result.setAttribute("text", text);
 
     result.appendChild(viewToXml(doc));
     result.appendChild(inputPointsToXml(doc));

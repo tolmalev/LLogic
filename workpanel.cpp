@@ -146,6 +146,7 @@ void WorkPanel::addElement(Element *e)
 	case NUMSEND:	ew = new NumberSendElement8Widget(this);    break;
 	case NUMRECIEVE:ew = new NumberRecieveElement8Widget(this); break;
 	case SEGMENT:	ew = new SegmentElementWidget(this);	    break;
+	case IF:	ew = new IfElementWidget(this);	    break;
 	default:        ew = new ElementWidget(this);		    break;
     }
     ew->show();

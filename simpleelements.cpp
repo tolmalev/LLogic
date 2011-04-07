@@ -5,6 +5,30 @@
 #include <QApplication>
 
 
+void IfElement::recalc()
+{
+    int nm=0;
+    for(int i = 7; i >= 0; i--)
+    {
+	nm=2*nm+c->get(in[i]);
+    }
+    switch(type)
+    {
+	case G:c->set(out[0], nm > num);break;
+	case L:c->set(out[0], nm < num);break;
+	case E:c->set(out[0], nm == num);break;
+    }
+}
+
+Element* IfElement::clone()
+{
+    IfElement *el = new IfElement;
+    el->num = num;
+    el->type = type;
+    el->text = text;
+    return el;
+}
+
 
 void NumberSendElement8::recalc()
 {
@@ -38,6 +62,7 @@ Element* NumberSendElement8::clone()
 {
     NumberSendElement8 *ns = new NumberSendElement8;
     ns->num = num;
+    ns->text = text;
     return ns;
 }
 

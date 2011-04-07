@@ -256,6 +256,7 @@ void ComplexElement::buildTable(QString fileName)
 	}
 	for(int j = 0; j < out_cnt; j++)
 	    str += QString::number((out_res & (1 << j)) != 0) + " ";
+
 	qWarning("output %d", out_res);
 	f.write(str.toAscii());
     }

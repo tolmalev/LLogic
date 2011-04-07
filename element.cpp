@@ -6,7 +6,7 @@
 using namespace std;
 
 Element::Element()
-{   
+{
     c = 0;
     in_cnt = out_cnt = -1;
     _type = SIMPLE;
@@ -30,7 +30,7 @@ Element::Element(Controller* _c, int _in_cnt, int _out_cnt, int __type, QString 
 void Element::setController(Controller *_c)
 {
     if(c != 0)
-        disconnectControler();
+	disconnectControler();
     c = _c;
 
     if(!c)return;
@@ -38,24 +38,24 @@ void Element::setController(Controller *_c)
     int id;
     for(int i = 0; i < in_cnt; i++)
     {
-        id = c->new_point();
-        c->connect_element(id, this);
-        in[i] = id;
+	id = c->new_point();
+	c->connect_element(id, this);
+	in[i] = id;
     }
     for(int i = 0; i < out_cnt; i++)
     {
-        id = c->new_point();
-        c->connect_in_element(id, this);
-        out[i] = id;
+	id = c->new_point();
+	c->connect_in_element(id, this);
+	out[i] = id;
     }
 }
 
 void Element::disconnectControler()
 {
     foreach(int id, in)
-        c->remove_point(id);
+	c->remove_point(id);
     foreach(int id, out)
-        c->remove_point(id);
+	c->remove_point(id);
     in.clear();
     out.clear();
 }
@@ -65,9 +65,9 @@ bool Element::parseView(QDomElement d_el)
     _view.x      = d_el.attribute("x", "-1").toInt();
     _view.y      = d_el.attribute("y", "-1").toInt();
     if(d_el.hasAttribute("width"))
-        _view.width  = d_el.attribute("width").toInt();
+	_view.width  = d_el.attribute("width").toInt();
     if(d_el.hasAttribute("height"))
-        _view.height = d_el.attribute("height").toInt();
+	_view.height = d_el.attribute("height").toInt();
 
     return !(_view.x < 0 || _view.y < 0 || _view.width < 0 || _view.height < 0);
 }
@@ -78,18 +78,18 @@ bool Element::parseInputPoints(QDomElement d_el)
     int in_c = in_cnt;
     while(!ch_e.isNull())
     {
-        if(ch_e.tagName() == "point")
-        {
-            int id = ch_e.attribute("id", "-1").toInt();
-            int index = ch_e.attribute("index", "-1").toInt();
+	if(ch_e.tagName() == "point")
+	{
+	    int id = ch_e.attribute("id", "-1").toInt();
+	    int index = ch_e.attribute("index", "-1").toInt();
 
-            if(id < 0 || index < 0 || index >= in_cnt)
-                return 0;
+	    if(id < 0 || index < 0 || index >= in_cnt)
+		return 0;
 
-            in[index] = id;
-            in_c--;
-        }
-        ch_e = ch_e.nextSiblingElement();
+	    in[index] = id;
+	    in_c--;
+	}
+	ch_e = ch_e.nextSiblingElement();
     }
     return in_c==0;
 }
@@ -100,18 +100,18 @@ bool Element::parseOutputPoints(QDomElement d_el)
     int out_c = out_cnt;
     while(!ch_e.isNull())
     {
-        if(ch_e.tagName() == "point")
-        {
-            int id = ch_e.attribute("id", "-1").toInt();
-            int index = ch_e.attribute("index", "-1").toInt();
+	if(ch_e.tagName() == "point")
+	{
+	    int id = ch_e.attribute("id", "-1").toInt();
+	    int index = ch_e.attribute("index", "-1").toInt();
 
-            if(id < 0 || index < 0 || index >= out_cnt)
-                return 0;
+	    if(id < 0 || index < 0 || index >= out_cnt)
+		return 0;
 
-            out[index] = id;
-            out_c--;
-        }
-        ch_e = ch_e.nextSiblingElement();
+	    out[index] = id;
+	    out_c--;
+	}
+	ch_e = ch_e.nextSiblingElement();
     }
     return !out_c;
 }
@@ -120,32 +120,34 @@ Element * Element::fromXml(QDomElement d_el, Document*d)
 {
     Element * el = 0;
     if(d_el.tagName() != "element")
-        return 0;
+	return 0;
     QString type = d_el.attribute("type");
     if(type == "")
-        return 0;
+	return 0;
     if(type == "and")
-        el = new AndElement();
+	el = new AndElement();
     else if(type == "or")
-        el = new OrElement();
+	el = new OrElement();
     else if(type == "not")
-        el = new NotElement();
+	el = new NotElement();
     else if(type == "andnot")
-        el = new AndNotElement();
+	el = new AndNotElement();
     else if(type == "ornot")
-        el = new OrNotElement();
+	el = new OrNotElement();
     else if(type =="send")
-        el = new SendElement();
+	el = new SendElement();
     else if(type == "receive")
-        el = new ReceiveElement();
+	el = new ReceiveElement();
     else if(type == "xor")
-        el = new XorElement();
+	el = new XorElement();
     else if(type == "8bitsend")
 	el = new NumberSendElement8();
+    else if(type == "8bitrecieve")
+	el = new NumberRecieveElement8();
+    else if(type == "segment")
+	el = new SegmentElement();
     else if(type == "complex")
-        return ComplexElement::fromXml(d_el);
-    else if(type == "library")
-        return LibraryElement::fromXml(d_el, d);
+	return ComplexElement::fromXml(d_el);
 
     QDomElement ch_e = d_el.firstChildElement();
     bool view_ok  = 0;
@@ -153,26 +155,26 @@ Element * Element::fromXml(QDomElement d_el, Document*d)
     bool output_points_ok = 0;
     while(!ch_e.isNull())
     {
-        if(ch_e.tagName() == "view")
-        {
-            view_ok = el->parseView(ch_e);
-        }
-        else if(ch_e.tagName() == "input_points")
-        {
-            input_points_ok = el->parseInputPoints(ch_e);
-        }
-        else if(ch_e.tagName() == "output_points")
-        {
-            output_points_ok = el->parseOutputPoints(ch_e);
-        }
+	if(ch_e.tagName() == "view")
+	{
+	    view_ok = el->parseView(ch_e);
+	}
+	else if(ch_e.tagName() == "input_points")
+	{
+	    input_points_ok = el->parseInputPoints(ch_e);
+	}
+	else if(ch_e.tagName() == "output_points")
+	{
+	    output_points_ok = el->parseOutputPoints(ch_e);
+	}
 
-        ch_e = ch_e.nextSiblingElement();
+	ch_e = ch_e.nextSiblingElement();
     }
 
     if(!view_ok || !input_points_ok || !output_points_ok)
     {
-        delete el;
-        return 0;
+	delete el;
+	return 0;
     }
     return el;
 }
@@ -190,8 +192,9 @@ QString typeString(int type)
 	case XOR:	return "xor";
 	case SEND:	return "send";
 	case RECEIVE:	return "receive";
-	case LIBRARY:	return "library";
 	case NUMSEND:	return "8bitsend";
+	case NUMRECIEVE:return "8bitrecieve";
+	case SEGMENT:	return "segment";
     }
     return "";
 }
@@ -211,10 +214,10 @@ QDomElement Element::inputPointsToXml(QDomDocument doc)
     QDomElement result = doc.createElement("input_points");
     for(int i = 0; i < in_cnt; i++)
     {
-        QDomElement p = doc.createElement("point");
-        p.setAttribute("id", in[i]);
-        p.setAttribute("index", i);
-        result.appendChild(p);
+	QDomElement p = doc.createElement("point");
+	p.setAttribute("id", in[i]);
+	p.setAttribute("index", i);
+	result.appendChild(p);
     }
     return result;
 }
@@ -224,10 +227,10 @@ QDomElement Element::outputPointsToXml(QDomDocument doc)
     QDomElement result = doc.createElement("output_points");
     for(int i = 0; i < out_cnt; i++)
     {
-        QDomElement p = doc.createElement("point");
-        p.setAttribute("id", out[i]);
-        p.setAttribute("index", i);
-        result.appendChild(p);
+	QDomElement p = doc.createElement("point");
+	p.setAttribute("id", out[i]);
+	p.setAttribute("index", i);
+	result.appendChild(p);
     }
     return result;
 }

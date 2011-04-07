@@ -195,6 +195,92 @@ void NumberSendElement8Widget::updateSize()
     setGeometry(e->view().x*grid_size, e->view().y*grid_size, (e->view().width + 1) * grid_size, e->view().height* grid_size);
 }
 
+void NumberRecieveElement8Widget::updateSize()
+{
+    setGeometry(e->view().x*grid_size, e->view().y*grid_size, (e->view().width + 1) * grid_size, e->view().height* grid_size);
+}
+
+void SegmentElementWidget::updateSize()
+{
+    setGeometry(e->view().x*grid_size, e->view().y*grid_size, (e->view().width + 1) * grid_size, e->view().height* grid_size);
+}
+
+void SegmentElementWidget::paintEvent(QPaintEvent *event)
+{
+    QPainter painter(this);
+    SegmentElement* el = (SegmentElement*)e;
+
+    int w = geometry().width();
+    int h = geometry().height();
+
+    QPixmap p = MainWindow::wnd->pixmap(":/images/element_background.png");
+    painter.setPen(QColor(132, 2, 4));
+    painter.fillRect(grid_size, 0, w-1-grid_size, h-1, p);
+    painter.drawRect(grid_size, 0, w-1-grid_size, h-1);
+    for(int i = 0; i < el->in_cnt; i++)
+    {
+	int y = (i+1)*grid_size;
+	painter.drawLine(0, y, grid_size, y);
+    }
+
+    QRect seg(grid_size+10, 10, w-19-grid_size, h-19);
+
+    //painter.drawRect(seg);
+    QPoint tl = seg.topLeft();
+    QPoint tr = seg.topRight();
+    QPoint bl = seg.bottomLeft();
+    QPoint br = seg.bottomRight();
+    QPoint ml = (tl+bl)/2;
+    QPoint mr = (tr+br)/2;
+    QPoint dx(4, 0);
+    QPoint dy(0, 4);
+
+    int arr[8] = {0};
+    int i=0;
+    int s = el->state;
+    while(s>0)
+    {
+	arr[i++]=s%2;
+	s /= 2;
+    }
+
+    QPen pen;
+    pen.setCapStyle(Qt::RoundCap);
+
+    pen.setWidth(4);
+    pen.setColor(QColor(132, 2, 4));
+    painter.setBrush(pen.color());
+    painter.setPen(pen);
+
+    if(arr[0])painter.drawLine(tl+dx, tr-dx);
+    if(arr[1])painter.drawLine(tl+dy, ml-dy);
+    if(arr[2])painter.drawLine(tr+dy, mr-dy);
+    if(arr[3])painter.drawLine(ml+dx, mr-dx);
+    if(arr[4])painter.drawLine(ml+dy, bl-dy);
+    if(arr[5])painter.drawLine(mr+dy, br-dy);
+    if(arr[6])painter.drawLine(bl+dx, br-dx);
+    pen.setWidth(1);
+    painter.setPen(pen);
+    if(arr[7])painter.drawEllipse(br+dx+dy-QPoint(1,1), 2, 2);
+
+    pen.setWidth(4);
+    pen.setColor(QColor(132, 2, 4, 50));
+    painter.setBrush(pen.color());
+    painter.setPen(pen);
+
+    if(!arr[0])painter.drawLine(tl+dx, tr-dx);
+    if(!arr[1])painter.drawLine(tl+dy, ml-dy);
+    if(!arr[2])painter.drawLine(tr+dy, mr-dy);
+    if(!arr[3])painter.drawLine(ml+dx, mr-dx);
+    if(!arr[4])painter.drawLine(ml+dy, bl-dy);
+    if(!arr[5])painter.drawLine(mr+dy, br-dy);
+    if(!arr[6])painter.drawLine(bl+dx, br-dx);
+    pen.setWidth(1);
+    painter.setPen(pen);
+    if(!arr[7])painter.drawEllipse(br+dx+dy-QPoint(1,1), 2, 2);
+
+}
+
 void NumberSendElement8Widget::mouseDoubleClickEvent(QMouseEvent *ev)
 {
     if(lineEdit == 0)
@@ -217,7 +303,7 @@ void NumberSendElement8Widget::paintEvent(QPaintEvent *event)
     int w = geometry().width();
     int h = geometry().height();
 
-    QPixmap p(":/images/element_background.png");
+    QPixmap p = MainWindow::wnd->pixmap(":/images/element_background.png");
     painter.setPen(QColor(132, 2, 4));
     painter.fillRect(0, 0, w-1-grid_size, h-1, p);
     painter.drawRect(0, 0, w-1-grid_size, h-1);
@@ -228,7 +314,33 @@ void NumberSendElement8Widget::paintEvent(QPaintEvent *event)
     }
 
     painter.setFont(QFont("Arial", 12));
-    painter.drawText(15, 47, QString::number(el->num));
+    QRect rt(2, 2, w-5-grid_size, h-3);
+    painter.drawText(rt, Qt::AlignCenter, QString::number(el->num));
+
+    event->accept();
+}
+
+void NumberRecieveElement8Widget::paintEvent(QPaintEvent *event)
+{
+    QPainter painter(this);
+    NumberRecieveElement8* el = (NumberRecieveElement8*)e;
+
+    int w = geometry().width();
+    int h = geometry().height();
+
+    QPixmap p = MainWindow::wnd->pixmap(":/images/element_background.png");
+    painter.setPen(QColor(132, 2, 4));
+    painter.fillRect(grid_size, 0, w-1-grid_size, h-1, p);
+    painter.drawRect(grid_size, 0, w-1-grid_size, h-1);
+    for(int i = 0; i < el->in_cnt; i++)
+    {
+	int y = (i+1)*grid_size;
+	painter.drawLine(0, y, grid_size, y);
+    }
+
+    painter.setFont(QFont("Arial", 12));
+    QRect rt(grid_size+2, 2, w-5-grid_size, h-3);
+    painter.drawText(rt, Qt::AlignCenter, QString::number(el->num));
 
     event->accept();
 }

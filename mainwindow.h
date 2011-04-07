@@ -74,6 +74,8 @@ protected:
     QAction *asend;
     QAction *apoint;
     QAction *a8bitsend;
+    QAction *a8bitrec;
+    QAction *asegment;
     QAction *arec;
     QAction *aautoCalc;
 

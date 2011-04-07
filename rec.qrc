@@ -13,5 +13,6 @@
         <file>point_icon.png</file>
         <file>auto_icon.png</file>
         <file>select_icon.png</file>
+        <file>segment_icon.png</file>
     </qresource>
 </RCC>

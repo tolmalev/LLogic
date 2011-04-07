@@ -24,7 +24,6 @@ class DocumentChange{
 };
 
 class ConnectionsChange : public DocumentChange{
-
     friend class ElementsChange;
     protected:
 	QList<QPair<int, int> > con;
@@ -40,7 +39,6 @@ class ConnectionsChange : public DocumentChange{
 };
 
 class ElementsChange : public DocumentChange{
-
 	QSet<Element*>	els;
 	QMap<int, QPoint> pts;
 	ConnectionsChange *con_ch;

@@ -20,6 +20,8 @@ enum elementTypes{
     RECEIVE,
     LIBRARY,
     NUMSEND,
+    NUMRECIEVE,
+    SEGMENT,
 };
 
 QString typeString(int type);
@@ -33,43 +35,44 @@ class Element : public QObject
     friend class Document;
     friend class LibraryElement;
     friend class AddingWidget;
-    friend class ComplexElement;
 
     friend class NumberSendElement8Widget;
+    friend class NumberRecieveElement8Widget;
+    friend class SegmentElementWidget;
 
     protected:
-        int _type;
+	int _type;
 
-        QVector<int> in;
-        QVector<int> out;
-        int in_cnt, out_cnt;
-        Controller *c;
-        Document *d;
-        QString text;
-        struct VisualParams{
-            int x, y, width, height;
-        } _view;
+	QVector<int> in;
+	QVector<int> out;
+	int in_cnt, out_cnt;
+	Controller *c;
+	Document *d;
+	QString text;
+	struct VisualParams{
+	    int x, y, width, height;
+	} _view;
 
-        void disconnectControler();
+	void disconnectControler();
     public:
-        Element();
-        Element(Controller*c, int _in_cnt = -1, int _out_cnt = -1, int type = SIMPLE, QString text="");
+	Element();
+	Element(Controller*c, int _in_cnt = -1, int _out_cnt = -1, int type = SIMPLE, QString text="");
 
-        static Element *fromXml(QDomElement, Document*d=0);
-        virtual QDomElement toXml(QDomDocument);
-        QDomElement viewToXml(QDomDocument);
-        QDomElement inputPointsToXml(QDomDocument);
-        QDomElement outputPointsToXml(QDomDocument);
+	static Element *fromXml(QDomElement, Document*d=0);
+	virtual QDomElement toXml(QDomDocument);
+	QDomElement viewToXml(QDomDocument);
+	QDomElement inputPointsToXml(QDomDocument);
+	QDomElement outputPointsToXml(QDomDocument);
 
-        bool parseView(QDomElement);
-        bool parseInputPoints(QDomElement);
-        bool parseOutputPoints(QDomElement);
+	bool parseView(QDomElement);
+	bool parseInputPoints(QDomElement);
+	bool parseOutputPoints(QDomElement);
 
-        virtual void recalc() = 0;
-        virtual Element* clone() = 0;
-        void setController(Controller * c);
-        VisualParams view(){return _view;}
-        int type(){return _type;}
+	virtual void recalc() = 0;
+	virtual Element* clone() = 0;
+	void setController(Controller * c);
+	VisualParams view(){return _view;}
+	int type(){return _type;}
     signals:
 
     public slots:

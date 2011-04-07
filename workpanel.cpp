@@ -144,6 +144,8 @@ void WorkPanel::addElement(Element *e)
 	case SEND:      ew = new SendElementWidget(this);	    break;
 	case RECEIVE:   ew = new ReceiveElementWidget(this);	    break;
 	case NUMSEND:	ew = new NumberSendElement8Widget(this);    break;
+	case NUMRECIEVE:ew = new NumberRecieveElement8Widget(this); break;
+	case SEGMENT:	ew = new SegmentElementWidget(this);	    break;
 	default:        ew = new ElementWidget(this);		    break;
     }
     ew->show();
@@ -193,6 +195,7 @@ void WorkPanel::addPoint(int p, QPoint pos)
     freePoints.insert(pw);
     if(tmpw)
         tmpw->raise();
+    calculateLines();
     update();
 }
 
@@ -220,10 +223,7 @@ void WorkPanel::mouseMoveEvent(QMouseEvent *ev)
         int maxx = max(ev->x(), p1.x());
         int maxy = max(ev->y(), p1.y());
 
-        tmpw->setGeometry(minx, miny, maxx-minx, maxy-miny);
-
-        //qDebug("%d %d %d %d", minx, miny, maxx, maxy);
-
+	tmpw->setGeometry(minx, miny, maxx-minx, maxy-miny);
     }
     ev->accept();
 }
@@ -566,9 +566,8 @@ bool WorkPanel::canMoveTo(QWidget *e, QPoint p, bool sel)
 void MovingWidget::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
-    QPoint dp = wp->p2-wp->p1;
-    //qDebug("dp = %d %d", dp.x(), dp.y());
-    if(wp->toGrid(dp).isNull())
+    QPoint dp = wp->toGrid(QPoint(10000, 10000)+wp->p2-wp->p1) - QPoint(10000, 10000);
+    if(dp.isNull())
         return;
 
     bool shift = qApp->keyboardModifiers() == Qt::ShiftModifier || qApp->mouseButtons() == Qt::MidButton;
@@ -876,6 +875,7 @@ void WorkPanel::resizeEvent(QResizeEvent *ev)
 	    pw->move(ev->size().width()/grid_size*grid_size-2, (i+1)*grid_size*2-2);
 	}
     }
+    calculateLines();
 }
 
 void WorkPanel::updateMinimumSize()

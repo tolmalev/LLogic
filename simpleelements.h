@@ -6,6 +6,15 @@
 
 Element* SimpleElement(int type);
 
+class SegmentElement : public Element
+{
+    friend class SegmentElementWidget;
+	int state;
+    public:
+	SegmentElement() : Element(0, 8, 0, SEGMENT), state(0){};
+	virtual void recalc();
+	virtual Element*clone();
+};
 
 class NumberSendElement8 : public Element
 {
@@ -13,6 +22,16 @@ class NumberSendElement8 : public Element
 	int num;
     public:
 	NumberSendElement8() : Element(0, 0, 8, NUMSEND), num(0){};
+	virtual void recalc();
+	virtual Element*clone();
+};
+
+class NumberRecieveElement8 : public Element
+{
+    friend class NumberRecieveElement8Widget;
+	int num;
+    public:
+	NumberRecieveElement8() : Element(0, 8, 0, NUMRECIEVE), num(0){};
 	virtual void recalc();
 	virtual Element*clone();
 };
@@ -84,21 +103,6 @@ class NotElement : public Element
         NotElement() : Element(0, 1, 1, NOT, "Not") {};
         virtual void recalc();
         virtual Element*clone();
-};
-
-class LibraryElement : public Element
-{
-    QString name;
-    protected:
-        LibraryElement(QString name);
-    public:
-        LibraryElement(QString name, Document*d);
-        void init(Document *d);
-        virtual void recalc();
-        virtual Element*clone();
-
-        static LibraryElement *fromXml(QDomElement d_el, Document *d);
-        QDomElement toXml(QDomDocument);
 };
 
 #endif // SIMPLEELEMENTS_H

@@ -79,4 +79,22 @@ class NumberSendElement8Widget : public ElementWidget{
 	void numberChanged();
 };
 
+class NumberRecieveElement8Widget : public ElementWidget{
+    Q_OBJECT
+
+    public:
+	explicit NumberRecieveElement8Widget(QWidget *parent = 0) : ElementWidget(parent){};
+	virtual void updateSize();
+	virtual void paintEvent ( QPaintEvent * event );
+};
+
+class SegmentElementWidget : public ElementWidget{
+    Q_OBJECT
+
+    public:
+	explicit SegmentElementWidget(QWidget *parent = 0) : ElementWidget(parent){};
+	virtual void updateSize();
+	virtual void paintEvent ( QPaintEvent * event );
+};
+
 #endif // ELEMENTWIDGET_H

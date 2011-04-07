@@ -60,6 +60,7 @@ int Document::addPoint(QPoint pos, int p, bool save)
     if(panel)
         panel->addPoint(p, pos);
     changed();
+
     if(save)
     {
 	QSet<Element*> els;
@@ -584,6 +585,9 @@ void Document::createComplex(QSet<Element *> elements, QList<int> points)
     connect(ce->d, SIGNAL(documentChanged(Document*)), this, SLOT(changed()));
     changed();
     ce->d->auto_calculation = 1;
+
+    changes.clear();
+    now_change = changes.begin();
 }
 
 Element* Document::getLibraryElement(QString name)
@@ -729,6 +733,9 @@ void Document::addFromClipboard()
     QDomDocument doc;
     if(doc.setContent(ba))
     {
+	QMap<int, QPoint> _pts;
+	QList<QPair<int, int> > con;
+
 	QSet<Element*> els;
 	QSet<int> points;
 	QMap<int, int> pts;
@@ -777,11 +784,11 @@ void Document::addFromClipboard()
 		int x   = ch_e.attribute("x", "-1").toInt();
 		int y   = ch_e.attribute("y", "-1").toInt();
 
-
 		if(id == -1 || x == -1 || y==-1)
 		    return;
-		pts[id] = addPoint(QPoint(x,y));
+		pts[id] = addPoint(QPoint(x,y), -1, 0);
 		points.insert(pts[id]);
+		_pts[pts[id]] = QPoint(x, y);
 	    }
 	    else if(ch_e.tagName() == "connection")
 	    {
@@ -792,11 +799,15 @@ void Document::addFromClipboard()
 		    return;
 		if(c->add_connection(pts[from], pts[to]))
 		    return;
+		con.push_back(QPair<int, int>(pts[from], pts[to]));
 	    }
 	    ch_e = ch_e.nextSiblingElement();
 	}
 	if(panel)
 	    panel->setSelection(els, points);
+
+	ElementsChange *ch = new ElementsChange(this, els, _pts, con, 1);
+	addChange(ch);
     }
 }
 
@@ -819,7 +830,10 @@ void Document::undo()
     (*now_change)->undo();
     now_change++;
     if(panel)
+    {
 	panel->update();
+	panel->calculateLines();
+    }
 }
 
 void Document::redo()
@@ -830,7 +844,10 @@ void Document::redo()
     now_change--;
     (*now_change)->redo();
     if(panel)
+    {
 	panel->update();
+	panel->calculateLines();
+    }
 }
 
 void Document::addChange(DocumentChange *ch)

@@ -105,15 +105,49 @@ protected:
     QSet<PointWidget*>      freePoints;
     QSet<PointWidget*>      selectedFreePoints;
 
-    int state;
-    enum states{
-        NONE,
-        MOVING,
-        LINING,
-    };
+    struct tp{
+	    int x,y;
+	    bool operator ==(tp t2) {
+		return x==t2.x || x==t2.y || y==t2.x || y==t2.y;
+	    }
+	    bool operator !=(tp t2) {
+		return !(x==t2.x || x==t2.y || y==t2.x || y==t2.y);
+	    }
+	};
+	struct step{
+	    int x,y,t,wait;
+	};
+	struct tlines{
+	    int x1,y1,x2,y2;
+	    tp t;
+	};
+	struct field{
+	    int point,k1,k2,k,re;
+	    tp t1,t2;
+	};
 
-    void calculateLines();
-    void drawLines(QPainter &p);
+	field s[200][200];
+	int xsize,ysize;
+	int kstep1,kstep2,firstpoint,n;
+	step step1[10000],step2[10000],list[1000];
+	tlines lines[10000];
+	int klines;
+
+	int state;
+	enum states{
+	    NONE,
+	    MOVING,
+	    LINING,
+	};
+
+	int getx(int x);
+	int getk(int x);
+	int abs(int x);
+	int min(int x, int y);
+	int max(int x, int y);
+	int bfs(tp tt);
+	void calculateLines();
+	void drawLines(QPainter &p);
 
 public:
     explicit WorkPanel(ComplexElement*ce = 0, QWidget *parent = 0);

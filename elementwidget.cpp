@@ -264,7 +264,7 @@ void SegmentElementWidget::paintEvent(QPaintEvent *event)
     if(arr[7])painter.drawEllipse(br+dx+dy-QPoint(1,1), 2, 2);
 
     pen.setWidth(4);
-    pen.setColor(QColor(132, 2, 4, 50));
+    pen.setColor(QColor(132, 2, 4, 30));
     painter.setBrush(pen.color());
     painter.setPen(pen);
 

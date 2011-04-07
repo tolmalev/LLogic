@@ -236,9 +236,9 @@ void ComplexElement::buildTable(QString fileName)
     QFile f(fileName);
     if(!f.open(QFile::WriteOnly))
 	return;
+
     for(int i = 0; i < 1<<in_cnt; i++)
     {
-	qWarning("input %d", i);
 	QPair<int, int> p;
 	QString str = "";
 	for(int j = 0; j < in_cnt; j++)
@@ -257,7 +257,7 @@ void ComplexElement::buildTable(QString fileName)
 	for(int j = 0; j < out_cnt; j++)
 	    str += QString::number((out_res & (1 << j)) != 0) + " ";
 
-	qWarning("output %d", out_res);
+	str += "\r\n";
 	f.write(str.toAscii());
     }
     f.close();

@@ -144,10 +144,12 @@ void MainWindow::triggered(QAction *act)
     }
     else if(act->text() == "Undo")
     {
+	d=documents[tabWidget->currentWidget()];
 	d->undo();
     }
     else if(act->text() == "Redo")
     {
+	d=documents[tabWidget->currentWidget()];
 	d->redo();
     }
 }

@@ -38,9 +38,11 @@ void Document::addElement(Element *e, bool save)
     elements.insert(e);
     if(panel != 0)
         panel->addElement(e);
+    calcIfNeed();
     changed();
     if(e->type() == COMPLEX)
 	connect(((ComplexElement*)e)->d, SIGNAL(documentChanged(Document*)), this, SLOT(changed()));
+
 
     if(save)
     {
@@ -178,13 +180,8 @@ Document::~Document()
 int Document::addConnection(int id1, int id2, bool save)
 {
     int res = c->add_connection(id1, id2);
-    if(res == 0 && auto_calculation)
-    {
-        c->calculate();
-        if(panel)
-            panel->update();
-        changed();
-    }
+    if(res == 0)
+	calcIfNeed();
     if(save)
     {
 	ConnectionsChange *ch = new ConnectionsChange(this, id1, id2, 1);
@@ -435,6 +432,7 @@ void Document::calcIfNeed()
 void Document::removePoint(int id)
 {
     c->remove_point(id);
+    calcIfNeed();
     changed();
 }
 
@@ -523,7 +521,7 @@ void Document::createComplex(QSet<Element *> elements, QList<int> points)
     for(int i = 0; i < input.count(); i++)
     {
         input_id_index[input.at(i).second] = i;
-        ce->in.push_back(input.at(i).second);
+	ce->in[i] = input.at(i).second;
 
         ce->in_connections.push_back(QPair<int, int>(i, input.at(i).second));
         ce->d->c->connect_in_element(input.at(i).second, ce);
@@ -533,7 +531,7 @@ void Document::createComplex(QSet<Element *> elements, QList<int> points)
     for(int i = 0; i < output.count(); i++)
     {
         output_id_index[output.at(i).second] = i;
-        ce->out.push_back(output.at(i).second);
+	ce->out[i] = output.at(i).second;
 
         ce->out_connections.push_back(QPair<int, int>(output.at(i).second, i));
         c->connect_in_element(output.at(i).second, ce, 1);
@@ -583,6 +581,7 @@ void Document::createComplex(QSet<Element *> elements, QList<int> points)
     if(panel != 0)
         panel->addElement(ce);
     connect(ce->d, SIGNAL(documentChanged(Document*)), this, SLOT(changed()));
+    calcIfNeed();
     changed();
     ce->d->auto_calculation = 1;
 
@@ -638,7 +637,6 @@ int Document::removeLibraryElement(QString name)
     }
     else
 	return ((Element*)ce)->d->removeLibraryElement(name);
-
 }
 
 void Document::removeConnection(int id1, int id2, bool save)
@@ -649,6 +647,7 @@ void Document::removeConnection(int id1, int id2, bool save)
 	ConnectionsChange *ch = new ConnectionsChange(this, cons.toList(), 0);
 	addChange(ch);
     }
+    calcIfNeed();
     changed();
 }
 
@@ -809,6 +808,7 @@ void Document::addFromClipboard()
 	ElementsChange *ch = new ElementsChange(this, els, _pts, con, 1);
 	addChange(ch);
     }
+    calcIfNeed();
 }
 
 
@@ -834,6 +834,7 @@ void Document::undo()
 	panel->update();
 	panel->calculateLines();
     }
+    calcIfNeed();
 }
 
 void Document::redo()
@@ -848,6 +849,7 @@ void Document::redo()
 	panel->update();
 	panel->calculateLines();
     }
+    calcIfNeed();
 }
 
 void Document::addChange(DocumentChange *ch)
@@ -954,7 +956,7 @@ void Document::move(QPoint dr, QSet<Element *> els, QSet<int> pts, bool save)
     if(panel)
 	panel->move(dr, els, pts);
 
-    if(save)
+    if(save && !dr.isNull())
     {
 	MovingChange *ch = new MovingChange(this, dr, els, pts);
 	addChange(ch);
@@ -985,6 +987,7 @@ void Document::clone(QPoint dr, QSet<Element *> els, QSet<int> pts, bool save)
        ElementsChange *ch = new ElementsChange(this, _els, _pts, con, 1);
        addChange(ch);
    }
+   calcIfNeed();
 }
 
 void Document::remove(QSet<Element *> els, QSet<int> pts, bool save)
@@ -1059,4 +1062,5 @@ void Document::add(QSet<Element *> els, QMap<int, QPoint> pts, bool save)
 	ElementsChange *ch = new ElementsChange(this, els, pts, con, 1);
 	addChange(ch);
     }
+    calcIfNeed();
 }

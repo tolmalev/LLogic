@@ -616,10 +616,11 @@ void WorkPanel::contextMenuEvent(QContextMenuEvent *ev)
 		mn.addAction(alibrary);
 		mn.addAction(abuildtable);
 	    }
-        }
-
-	mn.exec(ev->globalPos());
+	    mn.exec(ev->globalPos());
+        }	
     }
+    else
+	ev->ignore();
 }
 
 void LiningWidget::paintEvent(QPaintEvent *ev)
@@ -929,7 +930,7 @@ void WorkPanel::buildTable()
 	QMessageBox::critical(this, "error", "This element has too many input points to build the truth table");
 	return;
     }
-    QString fileName = QFileDialog::getSaveFileName(this, "Save file", "", "Locic files (*.lod)");
+    QString fileName = QFileDialog::getSaveFileName(this, "Save file", "", "Locic files (*.txt)");
     if(fileName != "")
     {
 	ce->buildTable(fileName);

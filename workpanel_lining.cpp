@@ -4,15 +4,16 @@
 #include "elementwidget.h"
 #include "pointwidget.h"
 #include "controller.h"
+#include <math.h>
 
 #include <QPainter>
 
 int WorkPanel::getx(int x) {
-    return x/10+1;
+    return x/grid_size+1;
 }
 
 int WorkPanel::getk(int x) {
-    return (x-1)*10;
+    return (x-1)*grid_size;
 }
 
 int WorkPanel::min(int x, int y) {
@@ -25,9 +26,13 @@ int WorkPanel::max(int x, int y) {
     return y;
 }
 
-int WorkPanel::abs(int x) {
-    if (x<0) return -x;
-    return x;
+int WorkPanel::dfs(int k, int t) {
+    if (component[k]!=-1) return 0;
+    component[k]=t;
+    foreach(int b, *d->c->connections[k]) if (points.find(b) != points.end()) {
+	dfs(b,t);
+    }
+    return 0;
 }
 
 int WorkPanel::bfs(tp tt) {
@@ -132,11 +137,13 @@ int WorkPanel::bfs(tp tt) {
 
 void WorkPanel::calculateLines()
 {
-    xsize=geometry().width()/10+1;
-    ysize=geometry().height()/10+1;
+    xsize=geometry().width()/grid_size+1;
+    ysize=geometry().height()/grid_size+1;
+    if (xsize>198) xsize=198;
+    if (ysize>198) ysize=198;
     klines=0;
 
-    int i,j,x,y,xx,yy,m,error,q,numbertry=3;
+    int i,j,x,y,xx,yy,m,error,q,numbertry=2;
     tp t[1000];
 
     for (i=0; i<=xsize+1; i++)
@@ -156,6 +163,14 @@ void WorkPanel::calculateLines()
 	    for (j=WorkPanel::min(getx(ew->geometry().y()),getx(ew->geometry().y()+ew->geometry().height())); j<=max(getx(ew->geometry().y()),getx(ew->geometry().y()+ew->geometry().height())); j++)
 		s[i][j].k=-1;
     }
+
+    maxpoint=0;
+    foreach(int k, d->c->connections.keys())
+	if (k>maxpoint) maxpoint=k;
+
+    for (i=0; i<=maxpoint; i++) component[i]=-1;
+
+    j=0;
     foreach(int k, d->c->connections.keys())
     {
 	if(points.find(k) != points.end())
@@ -164,33 +179,42 @@ void WorkPanel::calculateLines()
 	    s[WorkPanel::getx(p1.x())][WorkPanel::getx(p1.y())].point=1;
 	    s[WorkPanel::getx(p1.x())][WorkPanel::getx(p1.y())+1].k=0;
 	    s[WorkPanel::getx(p1.x())][WorkPanel::getx(p1.y())-1].k=0;
+	    if (component[k]==-1) {
+		dfs(k,j);
+		j++;
+	    }
 	}
     }
 
     for (q=0; q<numbertry; q++) {
 	foreach(int k, d->c->connections.keys()) if (points.find(k) != points.end()) {
 	    QPoint p1 = toGrid(points[k]->mapTo(this, QPoint(3, 3)));
-	    x=getx(p1.x());
-	    y=getx(p1.y());
+	    x=WorkPanel::getx(p1.x());
+	    y=WorkPanel::getx(p1.y());
+	    if (x>xsize || y>ysize) {
+		continue;
+	    }
 
 	    n=0;
 	    foreach(int b, *d->c->connections[k]) if (points.find(b) != points.end()) {
 		QPoint p2 = toGrid(points[b]->mapTo(this, QPoint(3, 3)));
+		if (WorkPanel::getx(p2.x())>xsize || WorkPanel::getx(p2.y())>ysize) continue;
 		list[n].x=getx(p2.x());
 		list[n].y=getx(p2.y());
 		list[n].t=b;
 		t[n].x=k;
 		t[n].y=b;
+		t[n].t=component[k];
 		n++;
 	    }
 
 	    for (i=0; i<n; i++) {
 		for (j=0; j<klines; j++) if (lines[j].t.x==t[i].y && lines[j].t.y==t[i].x){
-		    if (lines[j].x1==lines[j].x2 && WorkPanel::abs(lines[j].y1-lines[j].y2)==1) {
+		    if (lines[j].x1==lines[j].x2 && abs(lines[j].y1-lines[j].y2)==1) {
 			s[lines[j].x1][lines[j].y1].k2--;
 			s[lines[j].x2][lines[j].y2].k2--;
 		    }
-		    if (lines[j].y1==lines[j].y2 && WorkPanel::abs(lines[j].x1-lines[j].x2)==1) {
+		    if (lines[j].y1==lines[j].y2 && abs(lines[j].x1-lines[j].x2)==1) {
 			s[lines[j].x1][lines[j].y1].k1--;
 			s[lines[j].x2][lines[j].y2].k1--;
 		    }
@@ -213,6 +237,7 @@ void WorkPanel::calculateLines()
 		    lines[klines].x2=list[i-1].x;
 		    lines[klines].y2=list[i-1].y;
 		    lines[klines].t=t[i-1];
+		    lines[klines].error=1;
 		    klines++;
 		}
 
@@ -302,6 +327,7 @@ void WorkPanel::calculateLines()
 		    lines[klines].x2=step1[j+1].x;
 		    lines[klines].y2=step1[j+1].y;
 		    lines[klines].t=t[i];
+		    lines[klines].error=0;
 		    klines++;
 		}
 	    }
@@ -313,7 +339,30 @@ void WorkPanel::calculateLines()
 		lines[klines].x2=list[i-1].x;
 		lines[klines].y2=list[i-1].y;
 		lines[klines].t=t[i-1];
+		lines[klines].error=1;
 		klines++;
+	    }
+	}
+    }
+
+
+    foreach(int k, d->c->connections.keys()) if (points.find(k) != points.end())
+    {
+	QPoint p1 = toGrid(points[k]->mapTo(this, QPoint(3, 3)));
+
+	if (WorkPanel::getx(p1.x())>xsize || WorkPanel::getx(p1.y())>ysize) {
+	    foreach(int b, *d->c->connections[k]) if (points.find(b) != points.end())
+	    {
+		QPoint p2 = toGrid(points[b]->mapTo(this, QPoint(3, 3)));
+		if (k<b || (WorkPanel::getx(p2.x())<=xsize && WorkPanel::getx(p2.y())<=ysize)) {
+		    lines[klines].x1=WorkPanel::getx(p1.x());
+		    lines[klines].y1=WorkPanel::getx(p1.y());
+		    lines[klines].x2=WorkPanel::getx(p2.x());
+		    lines[klines].y2=WorkPanel::getx(p2.y());
+		    lines[klines].t.t=component[k];
+		    lines[klines].error=1;
+		    klines++;
+		}
 	    }
 	}
     }
@@ -321,10 +370,73 @@ void WorkPanel::calculateLines()
 
 void WorkPanel::drawLines(QPainter &painter)
 {
-//    qWarning("%d",klines);
-    int i;
+    int i,j;
+    j=0;
+    for (i=0; i<klines; i++)
+	if (lines[i].t.t>j) j=lines[i].t.t;
+    for (i=0; i<=j; i++) component[i]=0;
+    for (i=0; i<klines; i++)
+	if (lines[i].light) component[lines[i].t.t]=1;
+
+    QPen pn(Qt::blue);
+    pn.setWidth(2);
     for (i=0; i<klines; i++) {
+	if (component[lines[i].t.t]) painter.setPen(pn); else
+	    painter.setPen(Qt::black);
+
 	painter.drawLine(WorkPanel::getk(lines[i].x1),WorkPanel::getk(lines[i].y1),WorkPanel::getk(lines[i].x2),WorkPanel::getk(lines[i].y2));
+    }
+
+    painter.setPen(QColor(2, 50, 4));
+    painter.setBrush(QColor(2, 50, 4));
+    xsize=geometry().width()/grid_size+1;
+    ysize=geometry().height()/grid_size+1;
+    for (j=1; j<=xsize; j++) {
+	for (i=1; i<=ysize; i++) {
+	    s[j][i].k=0;
+	    s[j][i].re=0;
+	}
+    }
+    for (j=0; j<klines; j++) if (!lines[j].error) {
+	if (s[lines[j].x1][lines[j].y1].k!=-1) {
+	    if (s[lines[j].x1][lines[j].y1].k==1 && s[lines[j].x1][lines[j].y1].t1!=lines[j].t)
+		    s[lines[j].x1][lines[j].y1].k=-1; else {
+		s[lines[j].x1][lines[j].y1].k=1;
+		s[lines[j].x1][lines[j].y1].t1=lines[j].t;
+		if (lines[j].x1==lines[j].x2) {
+		    if (lines[j].y1==lines[j].y2-1) s[lines[j].x1][lines[j].y1].re|=2;
+		    if (lines[j].y1==lines[j].y2+1) s[lines[j].x1][lines[j].y1].re|=8;
+		}
+		if (lines[j].y1==lines[j].y2) {
+		    if (lines[j].x1==lines[j].x2-1) s[lines[j].x1][lines[j].y1].re|=4;
+		    if (lines[j].x1==lines[j].x2+1) s[lines[j].x1][lines[j].y1].re|=1;
+		}
+	    }
+	}
+
+	if (s[lines[j].x2][lines[j].y2].k!=-1) {
+	    if (s[lines[j].x2][lines[j].y2].k==1 && s[lines[j].x2][lines[j].y2].t1!=lines[j].t)
+		    s[lines[j].x2][lines[j].y2].k=-1; else {
+		s[lines[j].x2][lines[j].y2].k=1;
+		s[lines[j].x2][lines[j].y2].t1=lines[j].t;
+		if (lines[j].x1==lines[j].x2) {
+		    if (lines[j].y1==lines[j].y2-1) s[lines[j].x2][lines[j].y2].re|=8;
+		    if (lines[j].y1==lines[j].y2+1) s[lines[j].x2][lines[j].y2].re|=2;
+		}
+		if (lines[j].y1==lines[j].y2) {
+		    if (lines[j].x1==lines[j].x2-1) s[lines[j].x2][lines[j].y2].re|=1;
+		    if (lines[j].x1==lines[j].x2+1) s[lines[j].x2][lines[j].y2].re|=4;
+		}
+	    }
+	}
+    }
+
+    for (j=1; j<=xsize; j++) {
+	for (i=1; i<=ysize; i++) {
+	    if (s[j][i].re==15 || s[j][i].re==7 || s[j][i].re==11 || s[j][i].re==13 || s[j][i].re==14) {
+		painter.drawRect(getk(j)-1,getk(i)-1,2,2);
+	    }
+	}
     }
 
     /*if(d != 0)

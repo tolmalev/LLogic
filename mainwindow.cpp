@@ -266,6 +266,7 @@ MainWindow::MainWindow(QWidget *parent) :
     file->addAction(save);
     file->addAction(saveas);
     file->addAction(newdoc);
+    file->addSeparator();
     file->addAction("Import library");
 
     QAction *ctrlf4 = new QAction("Close tab", this);

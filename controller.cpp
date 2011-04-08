@@ -256,17 +256,35 @@ QSet<QPair<int, int> > Controller::remove_connection(int id1, int id2)
 	return res;
     if(id1 == id2)
     {
-        foreach(int i, *connections[id1])
-        {
-            connections[i]->removeOne(id1);
+	bool h = has_in_e_connected(id1);
+	foreach(int i, *connections[id1])
+	{
+	    bool h2 = has_in_e_connected(i);
+	    connections[i]->removeOne(id1);
+	    connections[id1]->removeOne(i);
+	    if(h)
+		if(!has_in_e_connected(i))
+		    set(i, 0);
+	    if(h2)
+		if(!has_in_e_connected(id1))
+		    set(id1, 0);
+
 	    res.insert(QPair<int, int>(id1, i));
-        }
+	}
         connections[id1]->clear();
     }
     else
     {
+	bool h1 = has_in_e_connected(id1);
+	bool h2 = has_in_e_connected(id2);
         connections[id1]->removeOne(id2);
         connections[id2]->removeOne(id1);
+	if(h1)
+	    if(!has_in_e_connected(id2))
+		set(id2, 0);
+	if(h2)
+	    if(!has_in_e_connected(id1))
+		set(id1, 0);
 	res.insert(QPair<int, int>(id1, id2));
     }
     return res;

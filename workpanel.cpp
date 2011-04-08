@@ -196,12 +196,37 @@ void WorkPanel::addPoint(int p, QPoint pos)
     freePoints.insert(pw);
     if(tmpw)
         tmpw->raise();
+    updateMinimumSize();
     calculateLines();
     update();
 }
 
+int WorkPanel::dist(int x1, int y1, int x2, int y2, int x, int y) {
+    double a,b,c;
+    int r1,r2,r;
+    a=y1-y2;
+    b=x2-x1;
+    c=-a*x1-b*y1;
+    r=(x1-x2)*(x1-x2)+(y1-y2)*(y1-y2);
+    r1=(x1-x)*(x1-x)+(y1-y)*(y1-y);
+    r2=(x-x2)*(x-x2)+(y-y2)*(y-y2);
+
+    if (r+r1-r2>=0 && r+r2-r1>=0) return (int)(1.0*abs(a*x+b*y+c)/(sqrt(a*a+b*b)));
+    return (int)sqrt(WorkPanel::min(r1,r2));
+}
+
 void WorkPanel::mouseMoveEvent(QMouseEvent *ev)
 {
+    for (int i=0; i<klines; i++) {
+	    lines[i].light=0;
+	    if (dist(WorkPanel::getk(lines[i].x1),WorkPanel::getk(lines[i].y1),
+		     WorkPanel::getk(lines[i].x2),WorkPanel::getk(lines[i].y2),
+		     ev->x(),ev->y())<=2) {
+		lines[i].light=1;
+	    }
+	}
+	update();
+
     //qDebug("workpanel mouse move %d %d", ev->x(), ev->y());
     if(state == NONE)
     {

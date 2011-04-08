@@ -409,14 +409,14 @@ void IfElementWidget::recalc(QString n)
 	tp = 2;
     if(tp < 0)
 	return;
-    text = n;
     if(nn < -1)
 	nn = -1;
     if(nn > 256)
 	nn = 256;
     ((IfElement*)e)->num = nn;
     ((IfElement*)e)->type = tp;
-    e->text = n;
+    e->text = QString(n[0]) + QString::number(nn);
+    text = e->text;
     emit needCalculation(e);
     lineEdit->deleteLater();
     lineEdit = 0;

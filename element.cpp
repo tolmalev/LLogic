@@ -150,6 +150,8 @@ Element * Element::fromXml(QDomElement d_el, Document*d)
 	el = new SegmentElement();
     else if(type == "complex")
 	return ComplexElement::fromXml(d_el);
+    else
+	return 0;
 
     QDomElement ch_e = d_el.firstChildElement();
     el->text = d_el.attribute("text", "");

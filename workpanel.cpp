@@ -62,13 +62,18 @@ WorkPanel::WorkPanel(ComplexElement *ce, QWidget *parent) :
     d = 0;
 
     acomplex = new QAction("Create complex element", this);
-    acomplex->setShortcut(QKeySequence("Ctrl+Shift+C"));
     abuildtable = new QAction("Build the thuth table", this);
+    aCopy  = new QAction("Copy", this);
+    aPaste = new QAction("Paste", this);
+    aDelete = new QAction("Delete", this);
 
     alibrary = new QAction("Add this element to the library", this);
     connect(acomplex, SIGNAL(triggered()), this, SLOT(createComplex()));
     connect(alibrary, SIGNAL(triggered()), this, SLOT(addToLibrary()));
     connect(abuildtable, SIGNAL(triggered()), this, SLOT(buildTable()));
+    connect(aCopy, SIGNAL(triggered()), this, SLOT(copy()));
+    connect(aPaste, SIGNAL(triggered()), this, SLOT(paste()));
+    connect(aDelete, SIGNAL(triggered()), this, SLOT(adelete()));
 }
 
 QPoint WorkPanel::toGrid(QPoint a)
@@ -530,6 +535,20 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
 	{
             if(pw1 && pw2)
 	    {
+		if(pw1 == pw2)
+		{
+		    if(freePoints.find(pw1) != freePoints.end())
+		    {
+			if(qApp->keyboardModifiers()==Qt::ControlModifier)
+			    selectedFreePoints.insert(pw1);
+			else
+			{
+			    selected.clear();
+			    selectedFreePoints.insert(pw1);
+			}
+			update();
+		    }
+		}
 		if(!midButton)
 		    d->addConnection(pw1->point,pw2->point);
 		else
@@ -627,26 +646,32 @@ void MovingWidget::paintEvent(QPaintEvent *)
 
 void WorkPanel::contextMenuEvent(QContextMenuEvent *ev)
 {
+    QMenu mn;
+    if(qApp->clipboard()->mimeData()->hasFormat("LLogic/selection"))
+    {
+	mn.addAction(aPaste);
+	qWarning("has format");
+    }
     if(!selected.empty())
     {
         QWidget *w = childAt(ev->pos());
-	QMenu mn;
-        if(!w)
-            return;
-        if((w->inherits("ElementWidget") && selected.find((ElementWidget*)w) != selected.end()) ||
-           (w->inherits("PointWidget") && selectedFreePoints.find((PointWidget*)w) != selectedFreePoints.end()))
-        {
-	    mn.addAction(acomplex);
-	    if(w->inherits("ElementWidget") && selectedFreePoints.empty() && selected.count() == 1 && (*selected.begin())->e->type() == COMPLEX)
+	if(w)
+	    if((w->inherits("ElementWidget") && selected.find((ElementWidget*)w) != selected.end()) ||
+	       (w->inherits("PointWidget") && selectedFreePoints.find((PointWidget*)w) != selectedFreePoints.end()))
 	    {
-		mn.addAction(alibrary);
-		mn.addAction(abuildtable);
+		mn.addAction(acomplex);
+		if(w->inherits("ElementWidget") && selectedFreePoints.empty() && selected.count() == 1 && (*selected.begin())->e->type() == COMPLEX)
+		{
+		    mn.addAction(alibrary);
+		    mn.addAction(abuildtable);
+		}
+		mn.addSeparator();
+		mn.addAction(aCopy);
+		mn.addAction(aDelete);
 	    }
-	    mn.exec(ev->globalPos());
-        }	
     }
-    else
-	ev->ignore();
+    if(!mn.actions().empty())
+	mn.exec(ev->globalPos());
 }
 
 void LiningWidget::paintEvent(QPaintEvent *ev)
@@ -665,38 +690,16 @@ void LiningWidget::paintEvent(QPaintEvent *ev)
 void WorkPanel::keyPressEvent(QKeyEvent * ev)
 {
     if(ev->key() == Qt::Key_Delete)
-    {
-	QSet<Element*> els;
-	QSet<int> pts;
-	foreach(ElementWidget *ew, selected)
-	    els.insert(ew->e);
-	foreach(PointWidget *pw, selectedFreePoints)
-	    pts.insert(pw->point);
-	d->remove(els, pts);
-
-	selected.clear();
-	selectedFreePoints.clear();
-    }
+	adelete();
     else if(ev->key() == Qt::Key_C)
     {
 	if(qApp->keyboardModifiers() == Qt::ControlModifier)
-	{
-	    QSet<Element*> elements;
-	    QSet<int> _points;
-	    foreach(ElementWidget *ew, selected)
-		elements.insert(ew->e);
-	    foreach(PointWidget *pw, selectedFreePoints)
-		_points.insert(pw->point);
-	    d->addToClipboard(elements, _points);
-	}
+	    copy();
     }
     else if(ev->key() == Qt::Key_V)
     {
 	if(qApp->keyboardModifiers() == Qt::ControlModifier)
-	{
-	    d->addFromClipboard();
-	    calculateLines();
-	}
+	    paste();
     }
 }
 
@@ -1096,4 +1099,35 @@ void WorkPanel::remove(QSet<Element *> els, QSet<int> pts)
 
     calculateLines();
     update();
+}
+
+void WorkPanel::copy()
+{
+    QSet<Element*> elements;
+    QSet<int> _points;
+    foreach(ElementWidget *ew, selected)
+	elements.insert(ew->e);
+    foreach(PointWidget *pw, selectedFreePoints)
+	_points.insert(pw->point);
+    d->addToClipboard(elements, _points);
+}
+
+void WorkPanel::paste()
+{
+    d->addFromClipboard();
+    calculateLines();
+}
+
+void WorkPanel::adelete()
+{
+    QSet<Element*> els;
+    QSet<int> pts;
+    foreach(ElementWidget *ew, selected)
+	els.insert(ew->e);
+    foreach(PointWidget *pw, selectedFreePoints)
+	pts.insert(pw->point);
+    d->remove(els, pts);
+
+    selected.clear();
+    selectedFreePoints.clear();
 }

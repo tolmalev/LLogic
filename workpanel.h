@@ -93,6 +93,9 @@ protected:
 	QAction*    acomplex;
 	QAction*    alibrary;
 	QAction*    abuildtable;
+	QAction*    aCopy;
+	QAction*    aPaste;
+	QAction*    aDelete;
 
 	QWidget * tmpw;
 	QPoint p1, p2;
@@ -196,6 +199,9 @@ public slots:
     void createComplex();
     void addToLibrary();
     void buildTable();
+    void copy();
+    void paste();
+    void adelete();
 };
 
 #endif // WORKPANEL_H

@@ -21,8 +21,10 @@ class ComplexElement : public Element
 
     protected:
         Document*d;
-        QVector<QPair<int, int> > in_connections;
-        QVector<QPair<int, int> > out_connections;
+	QVector<QPair<int, int> > in_connections;
+	QVector<QPair<int, int> > out_connections;
+	//QVector<int> in_connections;
+	//QVector<int> out_connections;
     public:
 
         ComplexElement(int _in_cnt = -1, int _out_cnt = -1);

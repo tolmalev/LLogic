@@ -150,10 +150,15 @@ Document* Document::fromFile(QString filename)
     }
 
     Document *d = fromXml(doc.documentElement());
-    d->fileName = filename;
-    int ind = std::max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
-    d->_name = filename.mid(ind+1);
-    return d;
+    if(d)
+    {
+	d->fileName = filename;
+	int ind = std::max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
+	d->_name = filename.mid(ind+1);
+	return d;
+    }
+    else
+	return 0;
 }
 
 void Document::needCalculation(Element *e)

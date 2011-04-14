@@ -173,6 +173,9 @@ public:
     void redo();
     void addChange(DocumentChange *ch);
 
+    int newPoint();
+    void updateElement(Element* el);
+
 signals:
     void timeout(Document*);
     void calculation_finished(int);

@@ -38,11 +38,7 @@ ComplexElement *ElementLibrary::elementFromXml(QDomElement d_el)
     int out_c = d_el.attribute("out_cnt", "-1").toInt();
     if(in_c < 0 || out_c < 0)
         return 0;
-    el = new ComplexElement;
-    el->in_cnt = in_c;
-    el->out_cnt = out_c;
-    el->in.resize(in_c);
-    el->out.resize(out_c);
+    el = new ComplexElement(in_c, out_c);
 
     QDomElement ch_e = d_el.firstChildElement();
     bool view_ok  = 0;

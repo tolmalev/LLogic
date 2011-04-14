@@ -1,6 +1,7 @@
 #include "complexelement.h"
 #include "controller.h"
 #include "elementlibrary.h"
+#include "workpanel.h"
 #include "simpleelements.h"
 
 ComplexElement::ComplexElement(int _in_cnt, int _out_cnt )
@@ -12,9 +13,15 @@ ComplexElement::ComplexElement(int _in_cnt, int _out_cnt )
     out_cnt = _out_cnt;
 
     if(in_cnt > 0)
+    {
 	in.resize(in_cnt);
+	in_connections.resize(in_cnt);
+    }
     if(out_cnt > 0)
+    {
 	out.resize(out_cnt);
+	out_connections.resize(out_cnt);
+    }
 
     _type = COMPLEX;
 
@@ -31,14 +38,14 @@ ComplexElement::~ComplexElement()
 void ComplexElement::recalc()
 {
     QPair<int, int> p;
-    foreach(p, in_connections)
+    for(int i = 0; i < in_cnt; i++)
     {
-        d->c->set(p.second, c->get(in[p.first]));
+	d->c->set(in_connections[i], c->get(in[i]));
     }
     d->c->calculate(1);
-    foreach(p, out_connections)
+    for(int i = 0; i <out_cnt; i++)
     {
-        c->set(out[p.second], d->c->get(p.first));
+	c->set(out[i], d->c->get(out_connections[i]));
     }
 }
 
@@ -71,7 +78,8 @@ bool ComplexElement::parseInputConnections(QDomElement d_el)
 
             if(to == -1 || from == -1)
                 return 0;
-            in_connections.push_back(QPair<int, int>(from, to));
+	    //in_connections.push_back(QPair<int, int>(from, to));
+	    in_connections[from] = to;
             d->c->new_point(to);
         }
         ch_e = ch_e.nextSiblingElement();
@@ -91,7 +99,8 @@ bool ComplexElement::parseOutputConnections(QDomElement d_el)
 
             if(to == -1 || from == -1)
                 return 0;
-            out_connections.push_back(QPair<int, int>(from, to));
+	    //out_connections.push_back(QPair<int, int>(from, to));
+	    out_connections[to] = from;
             d->c->new_point(from);
         }
         ch_e = ch_e.nextSiblingElement();
@@ -114,11 +123,7 @@ ComplexElement * ComplexElement::fromXml(QDomElement d_el)
 
     if(in_c < 0 || out_c < 0)
         return 0;
-    el = new ComplexElement;
-    el->in_cnt = in_c;
-    el->out_cnt = out_c;
-    el->in.resize(in_c);
-    el->out.resize(out_c);
+    el = new ComplexElement(in_c, out_c);
     el->text = d_el.attribute("name", "complex");
 
     QDomElement ch_e = d_el.firstChildElement();
@@ -181,12 +186,11 @@ ComplexElement * ComplexElement::fromXml(QDomElement d_el)
 QDomElement ComplexElement::inputConnectionsToXml(QDomDocument doc)
 {
     QDomElement result = doc.createElement("input_connections");
-    QPair<int, int> p;
-    foreach(p, in_connections)
+    for(int i =0; i < in_cnt; i++)
     {
         QDomElement con = doc.createElement("connection");
-        con.setAttribute("from", p.first);
-        con.setAttribute("to", p.second);
+	con.setAttribute("from", i);
+	con.setAttribute("to", in_connections[i]);
         result.appendChild(con);
     }
 
@@ -196,12 +200,11 @@ QDomElement ComplexElement::inputConnectionsToXml(QDomDocument doc)
 QDomElement ComplexElement::outputConnectionsToXml(QDomDocument doc)
 {
     QDomElement result = doc.createElement("output_connections");
-    QPair<int, int> p;
-    foreach(p, out_connections)
+    for(int i= 0; i < out_cnt; i++)
     {
         QDomElement con = doc.createElement("connection");
-        con.setAttribute("from", p.first);
-        con.setAttribute("to", p.second);
+	con.setAttribute("from", out_connections[i]);
+	con.setAttribute("to", i);
         result.appendChild(con);
     }
 
@@ -239,20 +242,19 @@ void ComplexElement::buildTable(QString fileName)
 
     for(int i = 0; i < 1<<in_cnt; i++)
     {
-	QPair<int, int> p;
 	QString str = "";
 	for(int j = 0; j < in_cnt; j++)
 	    str += QString::number((i & (1 << j)) != 0) + " ";
-	foreach(p, in_connections)
+	for(int i = 0; i < in_cnt; i++)
 	{
-	    e->d->c->set(p.second, (i & (1 << p.first)) != 0);
+	    e->d->c->set(in_connections[i], (i & (1 << i)) != 0);
 	}
 	str += " | ";
 	e->d->c->calculate(1);
 	int out_res = 0;
-	foreach(p, out_connections)
+	for(int i = 0; i < out_cnt; i++)
 	{
-	    out_res += (1<<p.second) * e->d->c->get(p.first);
+	    out_res += (1<<i) * e->d->c->get(out_connections[i]);
 	}
 	for(int j = 0; j < out_cnt; j++)
 	    str += QString::number((out_res & (1 << j)) != 0) + " ";
@@ -262,4 +264,83 @@ void ComplexElement::buildTable(QString fileName)
     }
     f.close();
     delete e;
+}
+
+ComplexElement * ComplexElement::emptyElement(int in_cnt, int out_cnt)
+{
+    ComplexElement *el = new ComplexElement(in_cnt, out_cnt);
+    for(int i = 0; i < in_cnt; i++)
+	el->in_connections[i] = el->d->c->new_point();
+    for(int i = 0; i < out_cnt; i++)
+	el->out_connections[i] = el->d->c->new_point();
+    return el;
+}
+
+void ComplexElement::addInPoint(int id, int before)
+{
+    before = std::min(before, in_cnt);
+    qWarning("insert %d %d", id, before);
+    int was = 0;
+    int ind=-1;
+    if((ind = in_connections.indexOf(id)) >= 0)
+    {
+	if(ind == before)
+	    return;
+	in_connections.remove(ind);
+	was = in[ind];
+	in.remove(ind);
+	in_cnt--;
+	if(ind <= before)
+	    before--;
+	qWarning("insert2 %d %d", id, before);
+    }
+    QVector<int>::iterator it = in_connections.begin()+before;
+    QVector<int>::iterator it2 = in.begin() + before;
+    in_connections.insert(it, id);
+    in_cnt++;
+    _view.height = std::max(in_cnt, out_cnt) + 1;
+    _view.width  = std::max(3, _view.height*2/3);
+    if(!was)
+	in.insert(it2, Element::d->newPoint());
+    else
+	in.insert(it2, was);
+    Element::d->updateElement(this);
+}
+
+void ComplexElement::addOutPoint(int id, int before)
+{
+    before = std::min(before, out_cnt);
+    QVector<int>::iterator it = out_connections.begin()+before;
+    QVector<int>::iterator it2 = out.begin() + before;
+    bool was = 0;
+    if(int ind = out_connections.indexOf(id) >= 0)
+    {
+	was = 1;
+	out_connections.remove(ind);
+	out.remove(ind);
+	out_cnt--;
+    }
+    out_connections.insert(it, id);
+    out_cnt++;
+    _view.height = std::max(out_cnt, out_cnt) + 1;
+    _view.width  = std::max(3, _view.height*2/3);
+    if(!was)
+    {
+	out.insert(it2, Element::d->newPoint());
+    }
+    Element::d->updateElement(this);
+    for(int i = 0; i < out_cnt; i++)
+	qWarning("%d %d", out[i], out_connections[i]);
+}
+
+void ComplexElement::removeInPoint(int id)
+{
+    int ind = in_connections.indexOf(id);
+    if(ind < 0)
+	return;
+    in_connections.remove(ind, 1);
+    Element::d->removePoint(in[ind]);
+    in.remove(ind, 1);
+    in_cnt--;
+    Element::d->updateElement(this);
 }

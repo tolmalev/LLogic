@@ -20,14 +20,19 @@ void PointWidget::paintEvent(QPaintEvent * ev)
     p.setBrush(QColor(132, 2, 4));
 
     p.drawEllipse(0, 0, width()-2, height()-2);
-    //p.fillRect(0, 0, 100, 100, Qt::black);
 
     if(drawType == 1)
     {
         p.setPen(QColor(0, 255, 0, 200));
         p.setBrush(QColor(0, 255, 0, 200));//Qt::transparent);
         p.drawEllipse(0, 0, width()-1, height()-1);
-    }    
+    }
+    if(drawType == 2)
+    {
+	p.setPen(QColor(255, 0, 0, 255));
+	p.setBrush(QColor(0, 255, 0, 200));//Qt::transparent);
+	p.drawEllipse(0, 0, width()-1, height()-1);
+    }
     ev->accept();
 }
 

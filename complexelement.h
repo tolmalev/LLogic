@@ -20,11 +20,9 @@ class ComplexElement : public Element
     friend class Document;
 
     protected:
-        Document*d;
-	QVector<QPair<int, int> > in_connections;
-	QVector<QPair<int, int> > out_connections;
-	//QVector<int> in_connections;
-	//QVector<int> out_connections;
+	Document*d;
+	QVector<int> in_connections;
+	QVector<int> out_connections;
     public:
 
         ComplexElement(int _in_cnt = -1, int _out_cnt = -1);
@@ -34,6 +32,7 @@ class ComplexElement : public Element
         Document* document(){return d;}
 
         static ComplexElement *fromXml(QDomElement d_el);
+	static ComplexElement *emptyElement(int in_cnt, int out_cnt);
         QDomElement toXml(QDomDocument);
         QDomElement inputConnectionsToXml(QDomDocument doc);
         QDomElement outputConnectionsToXml(QDomDocument doc);
@@ -44,6 +43,11 @@ class ComplexElement : public Element
 	void buildTable(QString fileName);
 
         void updateDocumentName();
+
+	void addInPoint(int id, int after);
+	void addOutPoint(int id, int after);
+	void removeInPoint(int id);
+	void removeOutPoint(int id);
 };
 
 #endif // COMPLEXELEMENT_H

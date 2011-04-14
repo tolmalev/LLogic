@@ -41,22 +41,26 @@ WorkPanel::WorkPanel(ComplexElement *ce, QWidget *parent) :
         for(int i = 0; i < ce->in_cnt; i++)
         {
             PointWidget * pw = new PointWidget(this);
+	    freePoints.insert(pw);
             pw->show();
             pw->installEventFilter(this);
             pw->panel = this;
             pw->move(0, (i+1)*grid_size*2-3);
-            pw->point = ce->in_connections.at(i).second;
-            points[ce->in_connections.at(i).second] = pw;
+	    pw->point = ce->in_connections[i];
+	    points[ce->in_connections[i]] = pw;
+	    inputPoints.insert(pw);
         }
         for(int i = 0; i < ce->out_cnt; i++)
         {
-            PointWidget * pw = new PointWidget(this);
+	    PointWidget * pw = new PointWidget(this);
+	    freePoints.insert(pw);
             pw->show();
             pw->installEventFilter(this);
             pw->panel = this;
             pw->move(40*grid_size, (i+1)*grid_size*2-3);
-            pw->point = ce->out_connections.at(i).first;
-            points[ce->out_connections.at(i).first] = pw;
+	    pw->point = ce->out_connections[i];
+	    points[ce->out_connections[i]] = pw;
+	    outputPoints.insert(pw);
         }
     }
     d = 0;
@@ -74,6 +78,20 @@ WorkPanel::WorkPanel(ComplexElement *ce, QWidget *parent) :
     connect(aCopy, SIGNAL(triggered()), this, SLOT(copy()));
     connect(aPaste, SIGNAL(triggered()), this, SLOT(paste()));
     connect(aDelete, SIGNAL(triggered()), this, SLOT(adelete()));
+}
+
+void WorkPanel::updateInPoints()
+{
+    for(int i = 0; i < ce->in_cnt; i++)
+	points[ce->in_connections[i]]->move(-2, (i+1)*grid_size*2-3);
+    updateMinimumSize();
+}
+
+void WorkPanel::updateOutPoints()
+{
+    for(int i = 0; i < ce->out_cnt; i++)
+	points[ce->out_connections[i]]->move(width()/grid_size*grid_size-2, (i+1)*grid_size*2-3);
+    updateMinimumSize();
 }
 
 QPoint WorkPanel::toGrid(QPoint a)
@@ -326,181 +344,217 @@ void SelectWidget::paintEvent(QPaintEvent *ev)
     ev->accept();
 }
 
-bool WorkPanel::eventFilter(QObject *o, QEvent *e)
+bool WorkPanel::mousePressFilter(QObject *o, QEvent *e)
 {
-    //setFocus();
-    if(e->type() == QEvent::MouseButtonDblClick)
+    QMouseEvent *me = (QMouseEvent*)e;
+    if(me->button() == Qt::LeftButton || me->button() == Qt::MiddleButton)
     {
-        if(o->inherits("PointWidget"))
-            return 1;
-    }
-    else if(e->type() == QEvent::MouseButtonPress)
-    {
-        QMouseEvent *me = (QMouseEvent*)e;
-	if(me->button() == Qt::LeftButton || me->button() == Qt::MiddleButton)
-        {
-	    if(me->button() == Qt::MiddleButton)
-		midButton = 1;
-	    else
-		midButton = 0;
-            if(state == NONE)
-            {
-                if(o->inherits("ElementWidget"))
-                {
-                    ElementWidget *ew = (ElementWidget*)o;
-                    if(selected.find(ew) == selected.end())
-                    {
-                        if(qApp->keyboardModifiers() != Qt::ControlModifier)
-                        {
-                            selected.clear();
-                            selectedFreePoints.clear();
-                        }
-                        selected.insert(ew);
-                    }
-                    p2 = p1 = ew->mapTo(this, me->pos());
-		    tmpw = new MovingWidget(this, this);
-                    tmpw->show();
-		    tmpw->setGeometry(0, 0, width(), height());
-		    tmpw->setAttribute(Qt::WA_TransparentForMouseEvents);
-		    state = MOVING;
-                }
-                else if(o->inherits("PointWidget"))
-                {
-                    bool move = 0;
-                    if(!selectedFreePoints.empty())
-                    {
-                        PointWidget *pw = (PointWidget*)o;
-                        if(selectedFreePoints.find(pw) != selectedFreePoints.end())
-                        {
-                            p2 = p1 = pw->mapTo(this, me->pos());
-			    tmpw = new MovingWidget(this, this);
-                            tmpw->show();
-			    tmpw->setGeometry(0, 0, width(), height());
-                            state = MOVING;
-                            move=1;
-                        }
-                    }
-                    if(!move)
-                    {
-                        PointWidget *pw = (PointWidget*)o;
-			pw2 = pw1 = (PointWidget*)o;
-                        state = LINING;
-			tmpw = new LiningWidget(this, this);
-                        tmpw->show();
-                        p2 = p1 = toGrid(pw->mapTo(this, me->pos()));
-			tmpw->setGeometry(0, 0, width(), height());
-                    }
-                }
-            }
-        }
-	return 1;
-    }
-    else if(e->type() == QEvent::MouseMove)
-    {
-	QMouseEvent *me = (QMouseEvent*)e;
-        if(state == MOVING || state == LINING)
-        {
-            if(o->inherits("QWidget"))
-            {
-                QWidget *ew = (QWidget*)o;
-                p2 = ew->mapTo(this, me->pos());
-                if(tmpw)
-                    tmpw->update();
-            }
-        }
-        else if(state == NONE)
-        {
-            if(o->inherits("PointWidget"))
-            {
-		PointWidget *pw3 = (PointWidget*)o;
-		if(pw1 && pw1 != pw3)
-		{
-		    pw1->setDrawType(0);
-		    pw1->update();
-		}
-		pw1=pw3;
-                pw1->setDrawType(1);
-                pw1->update();
-            }
-            else
-            {
-                if(pw1)
-                {
-                    pw1->setDrawType(0);
-                    pw1->update();
-                    pw1=0;
-                }
-            }
-        }
-
-        if(state == LINING)
+	if(me->button() == Qt::MiddleButton)
+	    midButton = 1;
+	else
+	    midButton = 0;
+	if(state == NONE)
 	{
-            PointWidget *pw = 0;
-            foreach(PointWidget*p, points)
-            {
-                QRect rt = p->geometry();
-                rt.setTopLeft( p->mapTo(this, QPoint(0, 0)) );
-                rt.setWidth(p->geometry().width());
-		rt.setHeight(p->geometry().height());
-                if(rt.contains(p2))
-                {
-                    pw = p;
-                    break;
-                }
-            }
-
-            if(pw)
+	    if(o->inherits("ElementWidget"))
 	    {
-		if(pw2)
-		    pw2->setDrawType(0);
-                pw2 = pw;
-		if(d->canConnect(pw1->point, pw2->point) || midButton)
-                {
-                    pw2->setDrawType(1);
-                    pw2->update();
-                }
-            }
-            else
-            {
-                if(pw2)
-                {
-                    if(pw1 != pw2)
-                        pw2->setDrawType(0);
-                    pw2=0;
-                }
-            }
-        }
-	return 1;
+		ElementWidget *ew = (ElementWidget*)o;
+		if(selected.find(ew) == selected.end())
+		{
+		    if(qApp->keyboardModifiers() != Qt::ControlModifier)
+		    {
+			selected.clear();
+			selectedFreePoints.clear();
+		    }
+		    selected.insert(ew);
+		}
+		p2 = p1 = ew->mapTo(this, me->pos());
+		tmpw = new MovingWidget(this, this);
+		tmpw->show();
+		tmpw->setGeometry(0, 0, width(), height());
+		tmpw->setAttribute(Qt::WA_TransparentForMouseEvents);
+		state = MOVING;
+	    }
+	    else if(o->inherits("PointWidget"))
+	    {
+		bool move = 0;
+		if(!selectedFreePoints.empty())
+		{
+		    PointWidget *pw = (PointWidget*)o;
+		    if(selectedFreePoints.find(pw) != selectedFreePoints.end())
+		    {
+			p2 = p1 = pw->mapTo(this, me->pos());
+			tmpw = new MovingWidget(this, this);
+			tmpw->show();
+			tmpw->setGeometry(0, 0, width(), height());
+			state = MOVING;
+			move=1;
+		    }
+		}
+		if(!move)
+		{
+		    PointWidget *pw = (PointWidget*)o;
+		    pw2 = pw1 = (PointWidget*)o;
+		    state = LINING;
+		    tmpw = new LiningWidget(this, this);
+		    tmpw->show();
+		    p2 = p1 = toGrid(pw->mapTo(this, me->pos()));
+		    tmpw->setGeometry(0, 0, width(), height());
+		}
+	    }
+	}
     }
-    else if(e->type() == QEvent::MouseButtonRelease)
-    {
-        QMouseEvent *me = (QMouseEvent*)e;
-        if(state == MOVING)
-        {
-            if(o->inherits("QWidget"))
-            {
-                QWidget *ew = (QWidget*)o;
-                p2 = ew->mapTo(this, me->pos());
-                bool can = 1;
-		bool shift = qApp->keyboardModifiers() == Qt::ShiftModifier || midButton;
-                foreach(ElementWidget *ew, selected)
-                {
-		    if(!canMoveTo(ew, toGrid(ew->pos()+p2-p1), !shift))
-                    {
-                        can = 0;
-                        break;
-                    }
-                }
-                foreach(PointWidget *ew, selectedFreePoints)
-                {
-		    if(!canMoveTo(ew, toGrid(ew->pos()+p2-p1), !shift))
-                    {
-                        can = 0;
-                        break;
-                    }
-                }
+    return 1;
+}
 
-                if(can)
+bool WorkPanel::mouseMoveFilter(QObject *o, QEvent *e)
+{
+    QMouseEvent *me = (QMouseEvent*)e;
+    if(state == MOVING || state == LINING)
+    {
+	if(o->inherits("QWidget"))
+	{
+	    QWidget *ew = (QWidget*)o;
+	    p2 = ew->mapTo(this, me->pos());
+	    if(tmpw)
+		tmpw->update();
+	}
+    }
+    else if(state == NONE)
+    {
+	if(o->inherits("PointWidget"))
+	{
+	    PointWidget *pw3 = (PointWidget*)o;
+	    if(pw1 && pw1 != pw3)
+	    {
+		pw1->setDrawType(0);
+		pw1->update();
+	    }
+	    pw1=pw3;
+	    pw1->setDrawType(1);
+	    pw1->update();
+	}
+	else
+	{
+	    if(pw1)
+	    {
+		pw1->setDrawType(0);
+		pw1->update();
+		pw1=0;
+	    }
+	}
+    }
+
+    if(state == LINING)
+    {
+	PointWidget *pw = 0;
+	foreach(PointWidget*p, points)
+	{
+	    QRect rt = p->geometry();
+	    rt.setTopLeft( p->mapTo(this, QPoint(0, 0)) );
+	    rt.setWidth(p->geometry().width());
+	    rt.setHeight(p->geometry().height());
+	    if(rt.contains(p2))
+	    {
+		pw = p;
+		break;
+	    }
+	}
+
+	if(pw)
+	{
+	    if(pw2)
+		pw2->setDrawType(0);
+	    pw2 = pw;
+	    if(d->canConnect(pw1->point, pw2->point) || midButton)
+	    {
+		pw2->setDrawType(1);
+		pw2->update();
+	    }
+	}
+	else
+	{
+	    if(pw2)
+	    {
+		if(pw1 != pw2)
+		    pw2->setDrawType(0);
+		pw2=0;
+	    }
+	}
+    }
+    return 1;
+}
+
+bool WorkPanel::mouseReleaseFilter(QObject *o, QEvent *e)
+{
+    QMouseEvent *me = (QMouseEvent*)e;
+    if(state == MOVING)
+    {
+	if(o->inherits("QWidget"))
+	{
+	    QWidget *ew = (QWidget*)o;
+	    p2 = ew->mapTo(this, me->pos());
+	    bool can = 1;
+	    bool shift = qApp->keyboardModifiers() == Qt::ShiftModifier || midButton;
+	    foreach(ElementWidget *ew, selected)
+	    {
+		if(!canMoveTo(ew, toGrid(ew->pos()+p2-p1), !shift))
+		{
+		    can = 0;
+		    break;
+		}
+	    }
+	    foreach(PointWidget *ew, selectedFreePoints)
+	    {
+		if(!canMoveTo(ew, toGrid(ew->pos()+p2-p1), !shift))
+		{
+		    can = 0;
+		    break;
+		}
+	    }
+
+	    if(can)
+	    {
+		bool was = 0;
+		if(panel_type == ELEMENT && selected.empty() && selectedFreePoints.count() == 1)
+		{
+		    qWarning("ets");
+		    PointWidget *pw = *(selectedFreePoints.begin());
+		    QPoint dr = toGrid(QPoint(10000, 10000)+p2-p1) - QPoint(10000, 10000);
+		    QPoint new_pos = toGrid(pw->pos()+QPoint(2,2) + dr)-QPoint(2,2);
+		    bool inp = inputPoints.find(pw) != inputPoints.end();
+		    bool outp = inputPoints.find(pw) != inputPoints.end();
+		    bool was1 = 0;
+		    if(inp)
+		    {
+			if(new_pos.x() > 0)
+			{
+			    ce->removeInPoint(pw->point);
+			    inputPoints.remove(pw);
+			    was1=1;
+			}
+		    }
+		    else if(outp)
+		    {
+
+		    }
+
+		    if(!was1)
+		    {
+
+			if(new_pos.x() < 0)
+			{
+			    int before = new_pos.y() / grid_size / 2;
+			    ce->addInPoint(pw->point, before);
+			    pw->setDrawType(0);
+			    updateInPoints();
+			    inputPoints.insert(pw);
+			    calculateLines();
+			    update();
+			    was = 1;
+			}
+		    }
+		}
+		if(!was)
 		{
 		    QSet<Element*> els;
 		    QSet<int> pts;
@@ -521,63 +575,86 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
 		    else
 			d->clone(dr, els, pts);
 		    updateMinimumSize();
-                }
-	    }
-
-            if(tmpw)
-		tmpw->deleteLater();
-            tmpw=0;
-	    update();
-	    state = NONE;
-	    setFocus();
-        }
-        else if(state == LINING)
-	{
-            if(pw1 && pw2)
-	    {
-		if(pw1 == pw2)
-		{
-		    if(freePoints.find(pw1) != freePoints.end())
-		    {
-			if(qApp->keyboardModifiers()==Qt::ControlModifier)
-			    selectedFreePoints.insert(pw1);
-			else
-			{
-			    selected.clear();
-			    selectedFreePoints.insert(pw1);
-			}
-			update();
-		    }
 		}
-		if(!midButton)
-		    d->addConnection(pw1->point,pw2->point);
-		else
-		    d->removeConnection(pw1->point,pw2->point);
 	    }
-            if(pw1)
-            {
-                pw1->setDrawType(0);
-		pw1->update();
-                pw1=0;
-            }
-            if(tmpw)
-		tmpw->deleteLater();
-            tmpw=0;
-            state = NONE;
-        }
+	}
+
+	if(tmpw)
+	    tmpw->deleteLater();
+	tmpw=0;
+	update();
+	state = NONE;
+	setFocus();
+    }
+    else if(state == LINING)
+    {
+	if(pw1 && pw2)
+	{
+	    if(pw1 == pw2)
+	    {
+		if(freePoints.find(pw1) != freePoints.end())
+		{
+		    if(qApp->keyboardModifiers()==Qt::ControlModifier)
+			selectedFreePoints.insert(pw1);
+		    else
+		    {
+			selected.clear();
+			selectedFreePoints.clear();
+			selectedFreePoints.insert(pw1);
+		    }
+		    update();
+		}
+	    }
+	    if(!midButton)
+		d->addConnection(pw1->point,pw2->point);
+	    else
+		d->removeConnection(pw1->point,pw2->point);
+	}
 	if(pw1)
 	{
 	    pw1->setDrawType(0);
+	    pw1->update();
 	    pw1=0;
 	}
-	if(pw2)
-	{
-	    pw2->setDrawType(0);
-	    pw2=0;
-	}
-	calculateLines();
+	if(tmpw)
+	    tmpw->deleteLater();
+	tmpw=0;
+	state = NONE;
+    }
+    if(pw1)
+    {
+	pw1->setDrawType(0);
+	pw1=0;
+    }
+    if(pw2)
+    {
+	pw2->setDrawType(0);
+	pw2=0;
+    }
+    calculateLines();
 
-	return 1;
+    return 1;
+}
+
+bool WorkPanel::eventFilter(QObject *o, QEvent *e)
+{
+    //setFocus();
+    if(e->type() == QEvent::MouseButtonDblClick)
+    {
+        if(o->inherits("PointWidget"))
+            return 1;
+    }
+    else if(e->type() == QEvent::MouseButtonPress)
+    {
+	return mousePressFilter(o, e);
+    }
+    else if(e->type() == QEvent::MouseMove)
+    {
+	return mouseMoveFilter(o, e);
+    }
+    else if(e->type() == QEvent::MouseButtonRelease)
+    {
+	return mouseReleaseFilter(o, e);
     }
 
     return QWidget::eventFilter(o, e);
@@ -585,7 +662,15 @@ bool WorkPanel::eventFilter(QObject *o, QEvent *e)
 
 bool WorkPanel::canMoveTo(QWidget *e, QPoint p, bool sel)
 {
-    if(p.x() < 0 || p.y() < 0)
+    if(selected.count() > 0 || selectedFreePoints.count() > 1)
+    {
+	if(p.x() <= 0 || p.y() <= 0)
+	    return 0;
+	PointWidget *pw = (PointWidget*)e;
+	if(inputPoints.find(pw) != inputPoints.end() || outputPoints.find(pw) != outputPoints.end())
+	    return 0;
+    }
+    if(p.x() <= -grid_size || p.y() <= -grid_size)
         return 0;
     QRect rt = e->geometry();
     rt.moveTopLeft(p);
@@ -594,15 +679,21 @@ bool WorkPanel::canMoveTo(QWidget *e, QPoint p, bool sel)
 	if(selected.find(ew) == selected.end() || !sel)
         {
             if(!(rt.intersect(ew->geometry()).isNull()))
-                return 0;
+	    {
+		qWarning("element intersect");
+		return 0;
+	    }
         }
     }
-    foreach(PointWidget *ew, freePoints)
+    foreach(PointWidget *ew, points)
     {
-        if(selectedFreePoints.find(ew) == selectedFreePoints.end())
+	if(selectedFreePoints.find(ew) == selectedFreePoints.end() && ew->parentWidget() == this)
         {
             if(!(rt.intersect(ew->geometry()).isNull()))
-                return 0;
+	    {
+		qWarning("point intersect");
+		return 0;
+	    }
         }
     }
     return 1;
@@ -616,6 +707,25 @@ void MovingWidget::paintEvent(QPaintEvent *)
         return;
 
     bool shift = qApp->keyboardModifiers() == Qt::ShiftModifier || qApp->mouseButtons() == Qt::MidButton;
+    if(wp->selected.empty() && wp->selectedFreePoints.count() == 1 && wp->panel_type == WorkPanel::ELEMENT && !shift)
+    {
+	PointWidget *pw = *(wp->selectedFreePoints.begin());
+	QRect rt;
+	rt.setTopLeft(wp->toGrid(pw->pos()+QPoint(2,2) + dp)-QPoint(2,2));
+	rt.setWidth(pw->width());
+	rt.setHeight(pw->height());
+
+	if(wp->canMoveTo(pw, rt.topLeft(), !shift))
+	{
+	    p.setBrush(QColor(0, 255, 0, 100));
+	    if(rt.left() < 0 || rt.right()+grid_size-3 > wp->width())
+		p.setBrush(QColor(255, 255, 0, 255));
+	}
+	else
+	    p.setBrush(QColor(255, 0, 0, 100));
+	p.drawEllipse(rt);
+	return;
+    }
     foreach(ElementWidget *ew, wp->selected)
     {
         QRect rt;
@@ -691,6 +801,34 @@ void WorkPanel::keyPressEvent(QKeyEvent * ev)
 {
     if(ev->key() == Qt::Key_Delete)
 	adelete();
+    else if(ev->key() == Qt::Key_1)
+    {
+	int id = d->newPoint();
+	PointWidget *pw = new PointWidget(this);
+	pw->show();
+	pw->installEventFilter(this);
+	pw->panel = this;
+	pw->point = id;
+	points[id] = pw;
+	ce->addInPoint(id, 0);
+	updateInPoints();
+	calculateLines();
+	update();
+    }
+    else if(ev->key() == Qt::Key_2)
+    {
+	int id = d->newPoint();
+	PointWidget *pw = new PointWidget(this);
+	pw->show();
+	pw->installEventFilter(this);
+	pw->panel = this;
+	pw->point = id;
+	points[id] = pw;
+	ce->addOutPoint(id, 0);
+	updateOutPoints();
+	calculateLines();
+	update();
+    }
     else if(ev->key() == Qt::Key_C)
     {
 	if(qApp->keyboardModifiers() == Qt::ControlModifier)
@@ -805,17 +943,21 @@ void AddingWidget::paintEvent(QPaintEvent *ev)
 
 void WorkPanel::stopAdding(int type)
 {
-    tmpw->deleteLater();
-    if(d->instrument == Document::ADDELEMENT)
+    if(tmpw)
     {
-        delete adding;
-        adding = 0;
-    }
-    tmpw=0;
-    if(!type)
-    {
-        d->setInstrument(Document::SELECT);
-        emit d->instrumentChanged();
+	qWarning("stop adding");
+	tmpw->deleteLater();
+	if(d->instrument == Document::ADDELEMENT)
+	{
+	    delete adding;
+	    adding = 0;
+	}
+	tmpw=0;
+	if(!type)
+	{
+	    d->setInstrument(Document::SELECT);
+	    emit d->instrumentChanged();
+	}
     }
 }
 
@@ -901,7 +1043,7 @@ void WorkPanel::resizeEvent(QResizeEvent *ev)
 	panel_type = ELEMENT;
 	for(int i = 0; i < ce->out_cnt; i++)
 	{
-	    PointWidget * pw =  points[ce->out_connections.at(i).first];
+	    PointWidget * pw =  points[ce->out_connections[i]];
 	    pw->move(ev->size().width()/grid_size*grid_size-2, (i+1)*grid_size*2-2);
 	}
     }
@@ -924,7 +1066,8 @@ void WorkPanel::updateMinimumSize()
     }
     if(ce)
     {
-	mh = max(mh, (ce->in_cnt+1)*3*grid_size);
+	mh = max(mh, (ce->in_cnt+1)*2*grid_size);
+	mh = max(mh, (ce->out_cnt+1)*2*grid_size);
     }
     setMinimumWidth(mw);
     setMinimumHeight(mh);
@@ -1130,4 +1273,70 @@ void WorkPanel::adelete()
 
     selected.clear();
     selectedFreePoints.clear();
+}
+
+void WorkPanel::updateElementWidget(Element *el)
+{
+    foreach(ElementWidget *ew, elementWidgets)
+	if(ew->e == el)
+	{
+	    ew->updateSize();
+	    for(int i = 0; i < el->in_cnt; i++)
+	    {
+		qWarning("%d", el->in[i]);
+		if(points[el->in[i]] == 0)
+		{
+		    PointWidget *pw = new PointWidget(ew);
+		    pw->show();
+		    pw->installEventFilter(this);
+		    pw->panel = this;
+		    QPoint p = ew->getPointPos(0, i);
+		    pw->move(p.x(), p.y()-2);
+		    points[el->in[i]] = pw;
+		    pw->point = el->in.at(i);
+		}
+		else
+		{
+		    QPoint p = ew->getPointPos(0, i);
+		    points[el->in[i]]->move(p.x(), p.y()-2);
+		}
+	    }
+	    for(int i = 0; i < el->out_cnt; i++)
+	    {
+		qWarning("%d", el->out[i]);
+		if(points[el->out[i]] == 0)
+		{
+		    PointWidget *pw = new PointWidget(ew);
+		    pw->show();
+		    pw->installEventFilter(this);
+		    QPoint p = ew->getPointPos(1, i);
+		    pw->move(p.x()-6, p.y()-2);
+		    points[el->out.at(i)] = pw;
+		    pw->point = el->out.at(i);
+		}
+		else
+		{
+		    QPoint p = ew->getPointPos(1, i);
+		    points[el->out[i]]->move(p.x()-6, p.y()-2);
+		    points[el->out[i]]->show();
+		    qDebug() << points[el->out[i]];
+		}
+	    }
+	    updateMinimumSize();
+	    calculateLines();
+	    update();
+	}
+}
+
+void WorkPanel::removePoint(int id)
+{
+    foreach(PointWidget *pw, points)
+	if(pw->point == id)
+	{
+	    points.remove(pw->point);
+	    inputPoints.remove(pw);
+	    selectedFreePoints.remove(pw);
+	    freePoints.remove(pw);
+	    pw->deleteLater();
+	}
 }

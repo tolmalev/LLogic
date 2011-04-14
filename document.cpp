@@ -7,6 +7,7 @@
 #include "elementlibrary.h"
 #include "simpleelements.h"
 #include "algorithm"
+#include "mainwindow.h"
 #include <QApplication>
 
 Document::Document(int _type, ComplexElement*el, QObject *parent) : QObject(parent), ce(el),_document_type(_type)
@@ -204,11 +205,11 @@ Document* Document::clone()
         d->library = library->clone();
     if(ce)
     {
-	QPair<int, int> p;
+	int p;
 	foreach(p, ce->in_connections)
-	    d->c->new_point(p.second);
+	    d->c->new_point(p);
 	foreach(p, ce->out_connections)
-	    d->c->new_point(p.first);
+	    d->c->new_point(p);
     }
     foreach(Element*e, elements)
     {
@@ -438,6 +439,8 @@ void Document::calcIfNeed()
 void Document::removePoint(int id)
 {
     c->remove_point(id);
+    if(panel)
+	panel->removePoint(id);
     calcIfNeed();
     changed();
 }
@@ -529,7 +532,7 @@ void Document::createComplex(QSet<Element *> elements, QList<int> points)
         input_id_index[input.at(i).second] = i;
 	ce->in[i] = input.at(i).second;
 
-        ce->in_connections.push_back(QPair<int, int>(i, input.at(i).second));
+	ce->in_connections[i] = input.at(i).second;
         ce->d->c->connect_in_element(input.at(i).second, ce);
         c->connect_element(input.at(i).second, ce);
     }
@@ -539,7 +542,7 @@ void Document::createComplex(QSet<Element *> elements, QList<int> points)
         output_id_index[output.at(i).second] = i;
 	ce->out[i] = output.at(i).second;
 
-        ce->out_connections.push_back(QPair<int, int>(output.at(i).second, i));
+	ce->out_connections[i] = output.at(i).second;
         c->connect_in_element(output.at(i).second, ce, 1);
     }
 
@@ -587,6 +590,7 @@ void Document::createComplex(QSet<Element *> elements, QList<int> points)
     if(panel != 0)
         panel->addElement(ce);
     connect(ce->d, SIGNAL(documentChanged(Document*)), this, SLOT(changed()));
+    connect(ce->d, SIGNAL(instrumentChanged()), MainWindow::wnd, SLOT(instrumentChanged()));
     calcIfNeed();
     changed();
     ce->d->auto_calculation = 1;
@@ -1070,4 +1074,21 @@ void Document::add(QSet<Element *> els, QMap<int, QPoint> pts, bool save)
 	addChange(ch);
     }
     calcIfNeed();
+}
+
+int Document::newPoint()
+{
+    return c->new_point();
+}
+
+void Document::updateElement(Element *el)
+{
+    el->_view.height = std::max(el->in_cnt, el->out_cnt) + 1;
+    el->_view.width  = std::max(3, el->_view.height*2/3);
+    for(int i = 0; i < el->in_cnt; i++)
+	c->connect_element(el->in[i], el);
+    for(int i = 0; i < el->out_cnt; i++)
+	c->connect_in_element(el->out[i], el);
+    if(panel)
+	panel->updateElementWidget(el);
 }

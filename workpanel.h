@@ -107,6 +107,8 @@ protected:
 	QSet<ElementWidget*>    selected;
 	QSet<PointWidget*>      freePoints;
 	QSet<PointWidget*>      selectedFreePoints;
+	QSet<PointWidget*>	inputPoints;
+	QSet<PointWidget*>	outputPoints;
 
 	struct tp{
 		int x,y,t;
@@ -155,7 +157,11 @@ protected:
 	void drawLines(QPainter &p);
 	int dist(int x1, int y1, int x2, int y2, int x, int y);
 
+	void updateInPoints();
+	void updateOutPoints();
+
 public:
+
     explicit WorkPanel(ComplexElement*ce = 0, QWidget *parent = 0);
     void paintEvent(QPaintEvent *);
 
@@ -176,6 +182,7 @@ public:
     void setSelection(QSet<Element*>, QSet<int> points);
     void move(QPoint dr, QSet<Element*> els, QSet<int> pts);
     void remove(QSet<Element *> els, QSet<int> pts);
+    void removePoint(int id);
 
     bool eventFilter(QObject *o, QEvent *e);
 
@@ -190,6 +197,11 @@ public:
     void setAddingElement(Element *e);
     void startAddingPoint();
     void updateMinimumSize();
+    void updateElementWidget(Element *el);
+
+    bool mouseMoveFilter(QObject *o, QEvent *e);
+    bool mousePressFilter(QObject *o, QEvent *e);
+    bool mouseReleaseFilter(QObject *o, QEvent *e);
 
 signals:
     void doubleClicked(ElementWidget*);

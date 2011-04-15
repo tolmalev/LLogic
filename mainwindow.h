@@ -79,6 +79,7 @@ protected:
     QAction *arec;
     QAction *aif;
     QAction *aautoCalc;
+    QAction *acreator;
 
     QAction *adeleteLibrary;
 

@@ -3,6 +3,9 @@
 #include "elementlibrary.h"
 #include "workpanel.h"
 #include "simpleelements.h"
+#include "math.h"
+
+using namespace std;
 
 ComplexElement::ComplexElement(int _in_cnt, int _out_cnt )
 {
@@ -310,27 +313,32 @@ void ComplexElement::addInPoint(int id, int before)
 void ComplexElement::addOutPoint(int id, int before)
 {
     before = std::min(before, out_cnt);
-    QVector<int>::iterator it = out_connections.begin()+before;
-    QVector<int>::iterator it2 = out.begin() + before;
-    bool was = 0;
-    if(int ind = out_connections.indexOf(id) >= 0)
+    qWarning("insert %d %d", id, before);
+    int was = 0;
+    int ind=-1;
+    if((ind = out_connections.indexOf(id)) >= 0)
     {
-	was = 1;
+	if(ind == before)
+	    return;
 	out_connections.remove(ind);
+	was = out[ind];
 	out.remove(ind);
 	out_cnt--;
+	if(ind <= before)
+	    before--;
+	qWarning("insert2 %d %d", id, before);
     }
+    QVector<int>::iterator it = out_connections.begin()+before;
+    QVector<int>::iterator it2 = out.begin() + before;
     out_connections.insert(it, id);
     out_cnt++;
-    _view.height = std::max(out_cnt, out_cnt) + 1;
+    _view.height = std::max(in_cnt, out_cnt) + 1;
     _view.width  = std::max(3, _view.height*2/3);
     if(!was)
-    {
 	out.insert(it2, Element::d->newPoint());
-    }
+    else
+	out.insert(it2, was);
     Element::d->updateElement(this);
-    for(int i = 0; i < out_cnt; i++)
-	qWarning("%d %d", out[i], out_connections[i]);
 }
 
 void ComplexElement::removeInPoint(int id)
@@ -343,4 +351,237 @@ void ComplexElement::removeInPoint(int id)
     in.remove(ind, 1);
     in_cnt--;
     Element::d->updateElement(this);
+}
+
+void ComplexElement::removeOutPoint(int id)
+{
+    int ind = out_connections.indexOf(id);
+    if(ind < 0)
+	return;
+    out_connections.remove(ind, 1);
+    Element::d->removePoint(out[ind]);
+    out.remove(ind, 1);
+    out_cnt--;
+    Element::d->updateElement(this);
+}
+
+int ComplexElement::check(QString s) {
+    int k=0, error=0, i, n=s.length();
+
+    bool ok;
+    s.toInt(&ok,10);
+    if (ok) {
+        return 1;
+    }
+
+    ok=1;
+    for (i=0; i<n; i++) {
+        if (s[i].cell()=='(') k++;
+        if (s[i].cell()==')') k--;
+        if (k<0) error=1;
+        if (i==0 && k!=1) ok=0;
+        if (i<n-1 && k==0) ok=0;
+    }
+    if (k!=0) error=1;
+    if (error) {
+        qWarning("error with bracers");
+        return 0;
+    }
+
+    if (ok) {
+        s.remove(0,1);
+        s.remove(n-2,1);
+        return check(s);
+    }
+
+    k=0;
+    for (i=0; i<n; i++) {
+        if (s[i].cell()=='(') k++;
+        if (s[i].cell()==')') k--;
+        if (k==0 && !s[i].isNumber() && s[i].cell()!='(' && s[i].cell()!=')') {
+            if (s[i].cell()!='&' && s[i].cell()!='|' && s[i].cell()!='!' &&s[i].cell()!='^') {
+                qWarning("Unknown %c",s[i].cell());
+                return 0;
+            }
+            if ((s[i].cell()=='!' && i>0) || (s[i].cell()!='!' && (i==0 || i==n-1))) {
+                qWarning("Syn error");
+                return 0;
+            }
+
+            if (s[i].cell()!='!') {
+                QString g=s;
+                s.remove(0,i+1);
+                g.remove(i,n-i);
+                return check(s) && check(g);
+            } else {
+                s.remove(0,i+1);
+                return check(s);
+            }
+        }
+    }
+
+    qWarning("stange error...");
+    return 0;
+}
+
+int ComplexElement::connectAndGetIdOut(QString formula, int *h) {
+    int i,j,l1,l2,id1,id2,n=formula.length();
+    bool ok;
+    i=formula.toInt(&ok,10);
+    if (ok) {
+        *h=0;
+        return in_points[i];
+    };
+
+    int k=0;
+    ok=1;
+    for (i=0; i<n; i++) {
+        if (formula[i].cell()=='(') k++;
+        if (formula[i].cell()==')') k--;
+        if (i==0 && k!=1) ok=0;
+        if (i<n-1 && k==0) ok=0;
+    }
+    if (ok) {
+        formula.remove(0,1);
+        formula.remove(n-2,1);
+        id1=connectAndGetIdOut(formula, &l1);
+        *h=l1;
+        return id1;
+    }
+
+    for (i=0; i<yetExist.size(); i++) {
+        if (formula==yetExist[i].s) {
+            *h=yetExist[i].h;
+            return yetExist[i].out;
+        }
+    }
+
+    QString s,g;
+    save saving;
+    saving.s=formula;
+
+    QString op="|^&";
+    OrElement *newOr = new OrElement;
+    XorElement *newXor = new XorElement;
+    AndElement *newAnd = new AndElement;
+    for (j=0; j<3; j++) {
+        k=0;
+        for (i=0; i<n; i++) {
+            if (formula[i].cell()=='(') k++;
+            if (formula[i].cell()==')') k--;
+            if (k==0 && formula[i].cell()==op[j].cell()) {
+                s=formula;
+                g=s;
+                s.remove(0,i+1);
+                g.remove(i,g.length()-i);
+
+                id1=connectAndGetIdOut(g, &l1);
+                id2=connectAndGetIdOut(s, &l2);
+
+                *h=max(l1,l2)+1;
+                saving.h=*h;
+
+                if (op[j].cell()=='|') {
+                    newOr->_view.x=10*(*h);
+                    newOr->_view.y=10*y[*h]+3;
+                    y[*h]++;
+
+                    newce->d->addElement(newOr);
+                    newce->d->addConnection(id1,newOr->in[0]);
+                    newce->d->addConnection(id2,newOr->in[1]);
+                    saving.out=newOr->out[0];
+                    yetExist.push_back(saving);
+                    return newOr->out[0];
+                }
+                if (op[j].cell()=='^') {
+                    newXor->_view.x=10*(*h);
+                    newXor->_view.y=10*y[*h]+3;
+                    y[*h]++;
+
+                    newce->d->addElement(newXor);
+                    newce->d->addConnection(id1,newXor->in[0]);
+                    newce->d->addConnection(id2,newXor->in[1]);
+                    saving.out=newXor->out[0];
+                    yetExist.push_back(saving);
+                    return newXor->out[0];
+                }
+                if (op[j].cell()=='&') {
+                    newAnd->_view.x=10*(*h);
+                    newAnd->_view.y=10*y[*h]+3;
+                    y[*h]++;
+
+                    newce->d->addElement(newAnd);
+                    newce->d->addConnection(id1,newAnd->in[0]);
+                    newce->d->addConnection(id2,newAnd->in[1]);
+                    saving.out=newAnd->out[0];
+                    yetExist.push_back(saving);
+                    return newAnd->out[0];
+                }
+            }
+        }
+    }
+
+    //!
+    s=formula;
+    s.remove(0,1);
+
+    id1=connectAndGetIdOut(s, &l1);
+    NotElement *newNot = new NotElement;
+    *h=l1+1;
+    newNot->_view.x=10*(*h);
+    newNot->_view.y=10*y[*h]+3;
+    y[*h]++;
+    newce->d->addElement(newNot);
+    newce->d->addConnection(id1,newNot->in[0]);
+    saving.out=newNot->out[0];
+    saving.h=*h;
+    yetExist.push_back(saving);
+    return newNot->out[0];
+}
+
+Element* ComplexElement::createElementByFormula(QString formula)
+{
+    int i,n=0,k;
+    ComplexElement creator;
+
+    for (i=0; i<formula.length(); i++) {
+        if (formula[i].cell()=='+') formula[i]='|';
+        if (formula[i].cell()=='*') formula[i]='&';
+        if (formula[i].cell()=='-') formula[i]='!';
+
+        k=0;
+        while (formula[i].isNumber()) {
+            k=10*k+formula[i].cell()-'0';
+            if (k>100) break;
+            i++;
+            if (i==formula.length()) break;
+        }
+        if (k>n) n=k;
+    }
+    n++;
+    if (n>100) {
+        qWarning("too much in-points");
+        return 0;
+    }
+
+    for (i=0; i<=1000; i++) {
+        creator.y.push_back(0);
+    }
+
+    creator.newce = new ComplexElement(n,1);
+
+    if (!check(formula)) {
+        return 0;
+    }
+
+    creator.in_points.clear();
+    for (i=0; i<n; i++) {
+        creator.in_points.push_back(creator.newce->d->c->new_point());
+        creator.newce->in_connections[i]=creator.in_points[i];
+    }
+    int out_id = creator.newce->d->c->new_point();
+
+    creator.newce->d->addConnection(creator.connectAndGetIdOut(formula,&i),out_id);
+    creator.newce->out_connections[0]=out_id;
+    return creator.newce;
 }

@@ -375,13 +375,20 @@ void WorkPanel::drawLines(QPainter &painter)
     for (i=0; i<klines; i++)
 	if (lines[i].t.t>j) j=lines[i].t.t;
     for (i=0; i<=j; i++) component[i]=0;
-    for (i=0; i<klines; i++)
-	if (lines[i].light) component[lines[i].t.t]=1;
-
-    QPen pn(Qt::blue);
-    pn.setWidth(2);
     for (i=0; i<klines; i++) {
-	if (component[lines[i].t.t]) painter.setPen(pn); else
+        if (lines[i].light) {
+            if (d->c->get(lines[i].t.x)==1) component[lines[i].t.t]=1; else
+                component[lines[i].t.t]=-1;
+        }
+    }
+
+    QPen pn0(Qt::red);
+    QPen pn1(Qt::green);
+    pn0.setWidth(2);
+    pn1.setWidth(2);
+    for (i=0; i<klines; i++) {
+        if (component[lines[i].t.t]==-1) painter.setPen(pn0); else
+        if (component[lines[i].t.t]==1) painter.setPen(pn1); else
 	    painter.setPen(Qt::black);
 
 	painter.drawLine(WorkPanel::getk(lines[i].x1),WorkPanel::getk(lines[i].y1),WorkPanel::getk(lines[i].x2),WorkPanel::getk(lines[i].y2));

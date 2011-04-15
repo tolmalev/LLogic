@@ -10,6 +10,7 @@
 #include <QSplitter>
 #include <QDebug>
 #include <QTemporaryFile>
+#include <QInputDialog>
 #include <QUrl>
 
 #include "mainwindow.h"
@@ -191,6 +192,7 @@ MainWindow::MainWindow(QWidget *parent) :
     aif		= new QAction(pixmap(":/images/if_icon.png"), "if", toolBar);
     aselect     = new QAction(pixmap(":/images/select_icon.png"), "select", toolBar);
     aautoCalc   = new QAction(pixmap(":/images/auto_icon.png"), "auto",   toolBar);
+    acreator	= new QAction("by formula", toolBar);
 
     QActionGroup *ag = new QActionGroup(toolBar);
 
@@ -212,6 +214,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     aselect->setChecked(1);
     aautoCalc->setChecked(1);
+    acreator->setChecked(1);
 
     ag->addAction(aand);
     ag->addAction(aor);
@@ -227,6 +230,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ag->addAction(a8bitrec);
     ag->addAction(asegment);
     ag->addAction(aif);
+    ag->addAction(acreator);
 
     toolBar->addActions(ag->actions());
     toolBar->addSeparator();
@@ -458,10 +462,18 @@ void MainWindow::toolBarAction(QAction * act)
 {
     if(documents.find(tabWidget->currentWidget()) == documents.end())
         return;
+    if(act->text() == "by formula: ")
+    {
+        QString s="!1^2|0&!1";
+        if (ComplexElement::check(s)) {
+            documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
+            documents[tabWidget->currentWidget()]->setAddingElement(ComplexElement::createElementByFormula(s));
+        }
+    }
     if(act->text() == "and")
     {
         documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
-	documents[tabWidget->currentWidget()]->setAddingElement(new AndElement());
+        documents[tabWidget->currentWidget()]->setAddingElement(new AndElement());
     }
     else if(act->text() == "or")
     {
@@ -525,6 +537,19 @@ void MainWindow::toolBarAction(QAction * act)
     else if(act->text() == "point")
     {
         documents[tabWidget->currentWidget()]->setInstrument(Document::ADDPOINT);
+    }
+    else if(act->text() == "by formula")
+    {
+	QString str = QInputDialog::getText(this, "Type formula", "Formula:", QLineEdit::Normal, "");
+	if(str != "")
+	{
+	    Element *ce = ComplexElement::createElementByFormula(str);
+	    if(ce)
+	    {
+		documents[tabWidget->currentWidget()]->setInstrument(Document::ADDELEMENT);
+		documents[tabWidget->currentWidget()]->setAddingElement(ce);
+	    }
+	}
     }
     else if(act->text() == "auto")
     {

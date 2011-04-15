@@ -18,6 +18,16 @@ class ComplexElement : public Element
     friend class WorkPanel;
     friend class ElementLibrary;
     friend class Document;
+    friend class Element;
+
+    struct save{
+        QString s;
+        int out,h;
+    };
+
+    QVector<int> in_points, y;
+    QVector<save> yetExist;
+    ComplexElement *newce;
 
     protected:
 	Document*d;
@@ -33,6 +43,9 @@ class ComplexElement : public Element
 
         static ComplexElement *fromXml(QDomElement d_el);
 	static ComplexElement *emptyElement(int in_cnt, int out_cnt);
+        static Element *createElementByFormula(QString formula);
+        int connectAndGetIdOut(QString formula, int *h);
+        static int check(QString s);
         QDomElement toXml(QDomDocument);
         QDomElement inputConnectionsToXml(QDomDocument doc);
         QDomElement outputConnectionsToXml(QDomDocument doc);

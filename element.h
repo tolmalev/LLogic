@@ -41,6 +41,7 @@ class Element : public QObject
     friend class NumberRecieveElement8Widget;
     friend class IfElementWidget;
     friend class SegmentElementWidget;
+    friend class ComplexElement;
 
     protected:
 	int _type;

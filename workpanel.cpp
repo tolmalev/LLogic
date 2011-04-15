@@ -413,7 +413,7 @@ bool WorkPanel::mouseMoveFilter(QObject *o, QEvent *e)
     {
 	if(o->inherits("QWidget"))
 	{
-	    QWidget *ew = (QWidget*)o;
+            QWidget *ew = (QWidget*)o;
 	    p2 = ew->mapTo(this, me->pos());
 	    if(tmpw)
 		tmpw->update();
@@ -423,7 +423,14 @@ bool WorkPanel::mouseMoveFilter(QObject *o, QEvent *e)
     {
 	if(o->inherits("PointWidget"))
 	{
-	    PointWidget *pw3 = (PointWidget*)o;
+            PointWidget *pw3 = (PointWidget*)o;
+            for (int i=0; i<klines; i++) {
+                lines[i].light=0;
+                if (lines[i].t.x==pw3->point || lines[i].t.y==pw3->point)
+                    lines[i].light=1;
+            }
+            update();
+
 	    if(pw1 && pw1 != pw3)
 	    {
 		pw1->setDrawType(0);
@@ -435,7 +442,12 @@ bool WorkPanel::mouseMoveFilter(QObject *o, QEvent *e)
 	}
 	else
 	{
-	    if(pw1)
+            for (int i=0; i<klines; i++) {
+                lines[i].light=0;
+            }
+            update();
+
+            if(pw1)
 	    {
 		pw1->setDrawType(0);
 		pw1->update();
@@ -522,7 +534,7 @@ bool WorkPanel::mouseReleaseFilter(QObject *o, QEvent *e)
 		    QPoint dr = toGrid(QPoint(10000, 10000)+p2-p1) - QPoint(10000, 10000);
 		    QPoint new_pos = toGrid(pw->pos()+QPoint(2,2) + dr)-QPoint(2,2);
 		    bool inp = inputPoints.find(pw) != inputPoints.end();
-		    bool outp = inputPoints.find(pw) != inputPoints.end();
+		    bool outp = outputPoints.find(pw) != outputPoints.end();
 		    bool was1 = 0;
 		    if(inp)
 		    {
@@ -530,24 +542,38 @@ bool WorkPanel::mouseReleaseFilter(QObject *o, QEvent *e)
 			{
 			    ce->removeInPoint(pw->point);
 			    inputPoints.remove(pw);
-			    was1=1;
 			}
 		    }
 		    else if(outp)
 		    {
-
+			if(new_pos.x() +grid_size < width())
+			{
+			    ce->removeOutPoint(pw->point);
+			    outputPoints.remove(pw);
+			}
 		    }
 
 		    if(!was1)
 		    {
-
+			qWarning("new_pos.s() = %d    %d", new_pos.x(), width());
 			if(new_pos.x() < 0)
 			{
 			    int before = new_pos.y() / grid_size / 2;
+			    inputPoints.insert(pw);
 			    ce->addInPoint(pw->point, before);
 			    pw->setDrawType(0);
 			    updateInPoints();
-			    inputPoints.insert(pw);
+			    calculateLines();
+			    update();
+			    was = 1;
+			}
+			else if(new_pos.x() + grid_size > width())
+			{
+			    int before = new_pos.y() / grid_size / 2;
+			    outputPoints.insert(pw);
+			    ce->addOutPoint(pw->point, before);
+			    pw->setDrawType(0);
+			    updateOutPoints();
 			    calculateLines();
 			    update();
 			    was = 1;

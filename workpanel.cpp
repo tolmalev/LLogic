@@ -291,6 +291,11 @@ void WorkPanel::mousePressEvent(QMouseEvent *ev)
             tmpw->setAutoFillBackground(0);
             tmpw->show();
         }
+	else if(ev->button() == Qt::MiddleButton)
+	{
+	    p1 = QPoint(ev->pos());
+	    midButton = 1;
+	}
         else
         {
             if(tmpw)
@@ -309,6 +314,14 @@ void WorkPanel::mouseReleaseEvent(QMouseEvent *ev)
 {
     setFocus();
     releaseMouse();
+    if(midButton)
+    {
+	QSet<QPair<int, int > > s = getlines();
+	QPair<int ,int> p;
+	d->removeConnections(s);
+	calculateLines();
+	update();
+    }
 
     if(tmpw)
     {
@@ -332,6 +345,7 @@ void WorkPanel::mouseReleaseEvent(QMouseEvent *ev)
         }
         update();
     }
+    midButton = 0;
     ev->accept();
 }
 
@@ -701,27 +715,13 @@ bool WorkPanel::canMoveTo(QWidget *e, QPoint p, bool sel)
     QRect rt = e->geometry();
     rt.moveTopLeft(p);
     foreach(ElementWidget *ew, elementWidgets)
-    {
 	if(selected.find(ew) == selected.end() || !sel)
-        {
-            if(!(rt.intersect(ew->geometry()).isNull()))
-	    {
-		qWarning("element intersect");
+	    if(!(rt.intersect(ew->geometry()).isNull()))
 		return 0;
-	    }
-        }
-    }
     foreach(PointWidget *ew, points)
-    {
 	if(selectedFreePoints.find(ew) == selectedFreePoints.end() && ew->parentWidget() == this)
-        {
-            if(!(rt.intersect(ew->geometry()).isNull()))
-	    {
-		qWarning("point intersect");
+	    if(!(rt.intersect(ew->geometry()).isNull()))
 		return 0;
-	    }
-        }
-    }
     return 1;
 }
 
@@ -787,6 +787,18 @@ void WorkPanel::contextMenuEvent(QContextMenuEvent *ev)
     {
 	mn.addAction(aPaste);
 	qWarning("has format");
+    }
+    QWidget *w = childAt(ev->pos());
+    if(w)
+    {
+	ElementWidget *ew = (ElementWidget*)w;
+	if(selected.find(ew) == selected.end())
+	{
+	    selected.clear();
+	    selectedFreePoints.clear();
+	    selected.insert(ew);
+	    update();
+	}
     }
     if(!selected.empty())
     {
@@ -1085,11 +1097,12 @@ void WorkPanel::updateMinimumSize()
 	mw = std::max(mw, ew->geometry().right()+2*grid_size);
 	mh = std::max(mh, ew->geometry().bottom()+2*grid_size);
     }
-    foreach(PointWidget*ew, freePoints)
-    {
-	mw = std::max(mw, ew->geometry().right()+2*grid_size);
-	mh = std::max(mh, ew->geometry().bottom()+2*grid_size);
-    }
+    foreach(PointWidget*ew, freePoints)    
+	if(inputPoints.find(ew) == inputPoints.end() && outputPoints.find(ew) == outputPoints.end())
+	{
+	    mw = std::max(mw, ew->geometry().right()+2*grid_size);
+	    mh = std::max(mh, ew->geometry().bottom()+2*grid_size);
+	}
     if(ce)
     {
 	mh = max(mh, (ce->in_cnt+1)*2*grid_size);

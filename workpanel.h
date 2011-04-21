@@ -147,6 +147,7 @@ protected:
 	    LINING,
 	};
 
+	QSet<int> getline();
 	int getx(int x);
 	int getk(int x);
 	int min(int x, int y);
@@ -159,6 +160,8 @@ protected:
 
 	void updateInPoints();
 	void updateOutPoints();
+
+	QSet<QPair<int,int> > getlines();
 
 public:
 

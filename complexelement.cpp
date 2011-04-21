@@ -482,6 +482,9 @@ int ComplexElement::connectAndGetIdOut(QString formula, int *h) {
                 saving.h=*h;
 
                 if (op[j].cell()=='|') {
+		    if (id1==id2) {
+			return id1;
+		    }
                     newOr->_view.x=10*(*h);
                     newOr->_view.y=10*y[*h]+3;
                     y[*h]++;
@@ -506,6 +509,9 @@ int ComplexElement::connectAndGetIdOut(QString formula, int *h) {
                     return newXor->out[0];
                 }
                 if (op[j].cell()=='&') {
+		    if (id1==id2) {
+			return id1;
+		    }
                     newAnd->_view.x=10*(*h);
                     newAnd->_view.y=10*y[*h]+3;
                     y[*h]++;

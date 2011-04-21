@@ -154,7 +154,8 @@ Element * Element::fromXml(QDomElement d_el, Document*d)
 	return 0;
 
     QDomElement ch_e = d_el.firstChildElement();
-    el->text = d_el.attribute("text", "");
+    if(type == "if" || type == "8bitsend" || type == "8bitrecieve")
+	el->text = d_el.attribute("text", "");
     if(el->type() == NUMSEND)
 	((NumberSendElement8*)el)->update();
     if(el->type() == IF)

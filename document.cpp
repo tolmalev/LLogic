@@ -649,6 +649,22 @@ int Document::removeLibraryElement(QString name)
 	return ((Element*)ce)->d->removeLibraryElement(name);
 }
 
+void Document::removeConnections(QSet<QPair<int, int> >s, bool save)
+{
+    QSet<QPair<int, int> > cons;
+    QPair<int ,int> p, p2;
+    foreach(p, s)
+	 foreach(p2, c->remove_connection(p.first, p.second))
+	     cons.insert(p2);
+    if(save)
+    {
+	ConnectionsChange *ch = new ConnectionsChange(this, cons.toList(), 0);
+	addChange(ch);
+    }
+    calcIfNeed();
+    changed();
+}
+
 void Document::removeConnection(int id1, int id2, bool save)
 {
     QSet<QPair<int, int> > cons = c->remove_connection(id1, id2);
@@ -837,7 +853,6 @@ void Document::undo()
 {
     if(!canUndo())
 	return;
-    qWarning("undo");
     (*now_change)->undo();
     now_change++;
     if(panel)
@@ -852,7 +867,6 @@ void Document::redo()
 {
     if(!canRedo())
 	return;
-    qWarning("redo");
     now_change--;
     (*now_change)->redo();
     if(panel)

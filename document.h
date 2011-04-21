@@ -134,6 +134,7 @@ public:
 
     int     addConnection(int id1, int id2, bool save = 1);
     void    removeConnection(int id1, int id2, bool save = 1);
+    void    removeConnections(QSet<QPair<int, int> > s, bool save = 1);
     bool    canConnect(int id1, int id2);
     void    removePoint(int id);
     void    moveElement(Element *e, QPoint pos);

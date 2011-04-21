@@ -368,6 +368,18 @@ void WorkPanel::calculateLines()
     }
 }
 
+QSet<QPair<int,int> > WorkPanel::getlines() {
+    QSet<QPair<int,int> > s;
+    QPair<int,int> p;
+    for (int i=0; i<klines; i++) {
+	if (lines[i].light) {
+	    p.first=min(lines[i].t.x,lines[i].t.y);
+	    p.second=max(lines[i].t.x,lines[i].t.y);
+	    s.insert(p);
+	}
+    }
+    return s;
+}
 void WorkPanel::drawLines(QPainter &painter)
 {
     int i,j;
@@ -445,21 +457,4 @@ void WorkPanel::drawLines(QPainter &painter)
 	    }
 	}
     }
-
-    /*if(d != 0)
-    foreach(int k, d->c->connections.keys())
-    {
-	foreach(int b, *d->c->connections[k])
-	{
-	    if(k < b)
-	    {
-		if(points.find(k) != points.end() && points.find(b) != points.end())
-		{
-		    QPoint p1 = toGrid(points[k]->mapTo(this, QPoint(3, 3)));
-		    QPoint p2 = toGrid(points[b]->mapTo(this, QPoint(3, 3)));
-		    painter.drawLine(p1, p2);
-		}
-	    }
-	}
-    }*/
 }
